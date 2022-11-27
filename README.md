@@ -13,4 +13,4 @@ While learning web dev, I've been keeping notes because writing things down help
 
 [http-notes](./http-notes.md) - Notes on HTTPRequests/making API calls
 
-[Notes from the advanced JavaScript course from The Odin Project](./js-notes-2.md)
+[JavaScript Notes 2](./js-notes-2.md)- Notes from the advanced JavaScript course from The Odin Project
