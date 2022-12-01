@@ -2,6 +2,8 @@
 
 While learning web dev, I've been keeping notes because writing things down helps me understand them. Now, I'm putting them on Github so I can access them without needing to be on my virtual machine.
 
+I won't write everything down, just concepts that I feel the need to record.
+
 ## Navigation
 [Terminal Notes](./terminal-notes.md) - Terminal commands
 

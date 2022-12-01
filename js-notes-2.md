@@ -1,1 +1,1779 @@
 # Advanced JS Notes
+
+## Objects
+
+It's best to use **object literal** syntax to declare objects:
+
+    const myObject = {
+        property: 'Value',
+        otherProperty: 77,
+        "property func": function() {
+            // code
+        }
+    }
+
+There are 2 ways to get data from an object: dot notation `myObject.property`, bracket notation `myObject["property func"]`.
+
+Dot notation is cleaner and usually preferred, but doesn't work in every usage. `myObject."property func"` won't work because the property is a string with a space. You also can't use variables in dot notation as the browser will look for a property instead.
+
+    const variable = 'property'
+
+    myObject.variable // returns undefined
+
+    myObject[variable] // equivalent to myObject['property'], will return 'Value'
+
+### Objects as a Design Pattern
+
+Grouping things into objects is a good way to organise code. e.g, from a tic tac toe game:
+
+    // example one
+    const playerOneName = "tim"
+    const playerTwoName = "jenn"
+    const playerOneMarker = "X"
+    const playerTwoMarker = "O"
+
+    // example two
+    const playerOne = {
+        name: "tim",
+        marker: "X"
+    }
+
+    const playertwo = {
+        name: "jenn",
+        marker: "O"
+    }
+
+The benefits of the second approach outweigh the fewer line of the first. You can do:
+
+    function printName(player) {
+        console.log(player.name)
+    }
+
+Whereas you couldn't do this with the first eg. You'd have to remember the correct variable name and manually print it.
+
+    function gameOver(winningPlayer){
+        console.log("Congratulations!")
+        console.log(winningPlayer.name + " is the winner!")
+    }
+
+You can scale code much better using objects.
+
+### Object Constructors
+
+When you need to create duplicate objects, e.g. the players above:
+
+    function Player(name, marker) {
+        this.name = name
+        this.marker = marker
+    }
+
+When you call this with the keyword `new`,
+
+    const player = new Player('steve', 'X')
+    console.log(player.name) // 'steve'
+
+Just like with objects created via Object Literal, you can add functions to the object.
+
+    function Player(name, marker) {
+        this.name = name
+        this.marker = marker
+        this.sayName = function() {
+            console.log(name)
+        }
+    }
+
+    const player1 = new Player('steve', 'X')
+    player1.sayName() // logs 'steve'
+
+If using constructors to make objects, **it's best to define functions on the prototype of each object**. That means a single instance of each function will be shared between all the inherited objects. If you declare the function directly in the constructor, that function would be duplicated every time a new Object is created, which will scale badly.
+
+    function Student(name, grade) {
+        this.name = name
+        this.grade = grade
+    }
+
+    Student.prototype.sayName = function() {
+        console.log(this.name)
+    }
+    Student.prototype.goToProm = function() {
+        console.log("Eh.. go to prom?")
+    }
+
+By default, when creating a constructor function, e.g. `Student` here, you automatically create another object, the *prototype*.
+
+## Prototype
+
+### prototype property
+All objects in JavaScript have a *prototype*. Basically, this is another object that the original object *inherits* from; the original object has access to all its prototype's methods and properties.
+
+Every JS function has a prototype property, empty by default. You attach properties and methods on this prototype property when you want to implement inheritance, and these properties and methods are available to instances of that function. 
+
+The prototype is NOT enumerable (can't be used in a for/in loop). Firefox/most versions of Safari/Chrome have a `__proto__` "pseudo" property (alternative syntax) that accesses an object's prototype property. You may never use this `__proto__` property, but you should know it exists and is simply a way to access an object's prototype property in some browsers.
+
+Simple example:
+
+    function PrintStuff (myDocuments) {
+        this.documents = myDocuments;
+    }
+
+    // Add the print () method to the PrintStuff prototype property.
+    PrintStuff.prototype.print = function () {
+        return(this.documents);
+    }
+
+    var newObj = new PrintStuff ("I am a new Object and I can print.");
+
+    // Now, newObj inherited all properties and methods, including print ().
+    newObj.print (); // I am a new Object and I can print.
+
+### prototype attribute
+Think of the prototype attribute is a characteristic of the object, or the object's parent. This is the object it inherited its properties from. The prototype attribute is normally referred to as the *prototype object*, and it's automatically set when creating a new object.
+
+**NOTE:** All objects have attributes, just like object properties have attributes. The object attributes are the *prototype*, *class*, and *extensible* attributes. Also, the `__proto__` pseudo property contains an object's prototype object (the parent).
+
+### Constructor
+
+A function used for initializing new objects, using the `new` keyword when calling it.
+
+    function Account () {
+        // le code here
+    }
+
+    let userAccount = new Account ();
+
+All objects that inherit from another object also inherit a *constructor* property, a property that points to the constructor.
+
+### When prototype is used
+
+#### Prototype-based inheritance
+
+JavaScript, unlike other object oriented languages, doesn't have classical inheritance based on classes. So you do inheritance via prototypes.
+
+    function Plant() {
+        this.country = "Mexico"
+        this.isOrganic = true;
+    }
+
+    // Add method to plant()
+    plant.prototype.showNameAndColor = function() {
+        return "I am a " + this.name + " and my color is " + this.color;
+    }
+
+    // Add method to plant() 
+    plant.prototype.amIOrganic = function() {
+        if (this.isOrganic) {
+            return "I am organic";
+        }
+    }
+    
+    function Fruit(fruitName, fruitColor) {
+        this.name = fruitName;
+        this.color = fruitColor;
+    }
+
+    // Set fruit's prototype to plant's constructor. Fruit inherits all plant.prototype
+    // methods and properties
+    fruit.prototype = new Plant();
+
+    // Create Banana, an object with the fruit constructor
+    let Banana = new fruit ('banana', 'yellow');
+
+    // Banana has inherited Plant method.
+    Banana.showNameAndColor(); // I am a banana and my color is yellow.
+
+This is the main manner in which inheritance is implemented in JavaScript.
+
+#### Prototype chain (accessing properties on objects)
+
+The prototype attribute of any object is the parent object, where the inherited properties were defined. In a way, it works like family surname inheritance (namely, tracing it back up the family tree).
+
+In JS, if you want to access a property of an object, the search for the property begins on the object itself. If the JS runtime can't find it there, it will look at the prototype. This continues (if not found, check the prototype of the prototype etc.), until there is no more prototype. Then, **undefined** is returned.
+
+That's the *prototype chain*, which JS uses to look for properties and methods
+
+All objects in JavaScript inherit properties and methods from Object.prototype. These inherited properties and methods are constructor, hasOwnProperty (), isPrototypeOf (), propertyIsEnumerable (), toLocaleString (), toString (), and valueOf (). ECMAScript 5 also adds 4 accessor methods to Object.prototype.
+
+### Prototypal Inheritance
+
+But a different (hopefully less poorly written) article this time
+
+Sometimes you want to take something and extend it, e.g. have a `user` object, make `admin` and `guest` variants from it.
+
+In JS, objects have a hidden property, `[[Prototype]]`, that is either `null` or references another object. If you try to assign a prototype in a circle, JS will throw an error. Objects can only inherit from ONE prototype.
+
+Prototypes are read only. Writing/deleting operations work directly with the object, not any parent. If you assign a method that can be found in an object's prototype to the object itself, that function will always be called instead of the prototype's, and it won't affect the prototype's method at all.
+
+*Accessor properties* are an exception, as assignment is handled by a *setter function*.  So, writing to an accessor property is the same as calling a function.
+
+For that reason, `admin.fullName` works as expected below:
+
+    let user = {
+        name: "John",
+        surname: "Smith",
+
+        set fullName(value) {
+            [this.name, this.surname] = value.split(" ");
+
+        get fullName() {
+            return `${this.name} ${this.surname}`;
+        }
+    }
+
+    let admin = {
+        this.prototype: user; // Idk if this works or not but original example uses __proto__
+        isAdmin: true;
+    };
+
+    alert(admin.fullName); // John Smith (*)
+
+    // setter is called
+    admin.fullName = "Alice Cooper"; // (**)
+
+    alert(admin.fullName); // Alice Cooper
+    alert(user.fullName); // John Smith
+
+`(*)` - the property `admin.fullName` has a *getter* in the user prototype, so it is called.
+
+`(**)` - the property has a setter in the prototype, so it's called.
+
+#### "this"
+
+In the above example, there may be confusion about the value of `this` inside `set fullName(value)`; where are the properties `this.name` and `this.surname` written: user or admin?
+
+The answer: `this` is not affected by prototypes at all. No matter where the method is found, object or prototype, in a method call, `this` is always the object before the dot.
+
+So the setter in above used `admin` as `this`.
+
+This is very important. When you have a big object with many methods, and objects that inherit from it, and the inherited objects run the inherited methods, they will modify only their own states, not the state of the big object.
+
+    let animal = {
+        walk() {
+            if (!this.isSleeping) {
+                alert('I walk');
+            }
+        },
+        sleep() {
+            this.isSleeping = true;
+        }
+    };
+
+    let rabbit = {
+        name: "White Rabbit",
+        this.prototype: animal
+    };
+
+    // modifies rabbit.isSleeping
+    rabbit.sleep();
+
+    alert(rabbit.isSleeping); // true
+    alert(animal.isSleeping); // undefined (no such property in the prototype)
+
+As a result, methods are shared, but object state is not.
+
+### for...in loop
+
+The `for...in` loop iterates over inherited properties too.
+
+For instance:
+
+    let animal = {
+        eats: true
+    };
+
+    let rabbit = {
+        jumps: true,
+        this.prototype: animal
+    };
+
+    // Object.keys only returns own keys
+    alert(Object.keys(rabbit)); // jumps
+
+    // for...in loops over both own and inherited keys
+    for(let prop in rabbit) alert(prop); // jumps, then eats
+
+If that's not what we want, and we want to exclude inherited properties, there's a built-in method `obj.hasOwnProperty(key)`: it returns `true` if `obj` has its own (not inherited) property named `key`.
+
+Filtering out inherited properties (or, doing something else with them):
+
+    let animal = {
+        eats: true;
+    }
+
+    let rabbit = {
+        jumps: true;
+        this.prototype: animal;
+    }
+
+    for (let prop in rabbit) {
+        let isOwn = rabbit.hasOwnProperty(prop);
+
+        if (isOwn) {
+            alert.(`Our: ${prop}`); // Our: jumps
+        } else {
+            alert(`Inherited: ${prop}`); // Inherited: eats
+        }
+    }
+
+Reminder: we did not define `hasOwnProperty`; it was inherited from `Object.prototype`.
+SO, why did it not show up in the `for...in` loop in the above example? This is because it is not enumerable, just like all other properties of `Object.prototype`. They all have `enumerable:false` flag, so they're excluded from loops.
+
+**NOTE**: Almost all other key/value getting methods ignore inherited properties, e.g. `Object.keys`, `Object.values`, etc. They only operate on the object itself, so properties from the prototype are not taken into account.
+
+### Why are both hamsters full?
+This is an [exercise][https://javascript.info/task/hamster-proto] from [this page](https://javascript.info/prototype-inheritance). I decided to include my answer in my notes for posterity.
+
+We have two hamsters: `speedy` and `lazy` inheriting from the general `hamster` object.
+
+When we feed one of them, the other one is also full. Why? How can we fix it?
+
+    let hamster = {
+        stomach: [],
+
+        eat(food) {
+            this.stomach.push(food);
+        }
+    };
+
+    let speedy = {
+        __proto__: hamster
+    };
+
+    let lazy = {
+        __proto__: hamster
+    };
+
+    // This one found the food
+    speedy.eat("apple");
+    alert( speedy.stomach ); // apple
+
+    // This one also has it, why? fix please.
+    alert( lazy.stomach ); // apple
+
+Answer:
+Why?
+Because... `stomach` does not have `this.` in front of it, so the stomach array is stored on the shared `hamster` prototype, and there isn't one on each individual hamster object. So, `this.stomach.push` pushes apple to the prototype array (because it doesn't find any stomach on speedy), where lazy can also access it.
+To fix it, change `stomach: []` to `this.stomach: []`.
+
+Marking:
+My explanation was correct, but to fix it, I was incorrect. I tried it in the console, you can't do `this.stomach: []`. It gives a SyntaxError.
+
+    let hamster = {
+        stomach: [],
+
+        eat(food) {
+            this.stomach = [food];
+        }
+    }
+
+See above: it's important to note that this issue does NOT occur if you don't `push` and instead assign `this.stomach`. However it's not really a great scalable solution.
+
+To actually fix it, you can make sure that each hamster has its own stomach.
+
+    let hamster = {
+        stomach: [],
+
+        eat(food) {
+            this.stomach.push(food);
+        }
+    };
+
+    let speedy = {
+        __proto__: hamster
+        stomach: []
+    };
+
+    let lazy = {
+        __proto__: hamster
+        stomach: []
+    };
+
+**NOTE**: As a common solution, all properties that describe the **state** of a particular object, like `stomach` in the above, should be written into that object. That will avoid this issue.
+
+## "this"
+From [this article](https://dmitripavlutin.com/gentle-explanation-of-this-in-javascript/).
+
+### Mysterious word
+
+In other languages, `this` is the instance of the *current object* in the class method. It can't be used outside the method.
+
+In JavaScript though... `this` is the context of a function *invocation*. 
+
+JS has 4 function invocation types:
+- function invocation `alert('Hello World!')`
+- method invocation: `console.log('Hello World!')`
+- constructor invocation: `new RegExp('\\d')`
+- indirect invocation: `alert.call(undefined, 'Hello World!')`
+
+Each invocation type defines the context differently, so `this` can be a bit wild. ALSO, [strict mode](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Strict_mode) (which I should learn about later) also changes the way `this` behaves.
+
+To understand `this`, you should have a clear view of function invocation and how it impacts the context.
+
+Terminology:
+- **Invocation** of a function: executing the code that makes the body of a function; calling a function.
+- **Context** of an invocation is the value of `this` within the function body.
+- **Scope** of a function: the set of variables and functions accessible within a function body.
+
+### Function Invocation
+Performed when an expression that evaluates to a function is followed by `()`.
+
+`parseInt('18')` is a function invocation.
+
+`obj.myFunc()` is NOT. This is a *property accessor*, which creates a method invocation. e.g. `[1,5].join(',')` is a *method call*, not a function invocation.
+
+IIFE (immediately-invoked function expression), a more advanced function invocation:
+
+    const message = (function(name) {
+        return 'Hello ' + name + '!';
+    })('World');
+
+The first pair of `()`, `(function(name) { ... })` is an expression that **evaluates to a function object**, followed by the `()` with the argument `'World'`.
+
+#### "this" in function invocations
+The *global object* is determined by the execution environment; in a browser, the global object is `window`. When using `this` outside any function scope (topmost scope/global execution context), you'll be referring to `window`.
+
+In a function invocation, the *execution context* is the **global object**. So `this` will refer to `window`.
+
+#### strict mode
+
+Strict mode: available since ECMAScript 5.1; restricted variant of JS; better security and stronger error checking. You can enable strict mode `'use strict';` at the top of a function body, and it will affect all scopes within the function. Functions that are declared within execution scopes that have strict mode enabled will also inherit strict mode.
+
+When enabled, `this` is `undefined` in a regular function invocation. The execution context is NOT the global object anymore.
+
+#### Pitfall: "this" in inner function
+
+`this` in an inner function is NOT the same as `this` in an outer function invocation!
+
+The context of an inner function (except arrow functions) depends **only** on its own invocation type, not on the outer function's context.
+
+To manipulate `this`, modify the inner function's context with indirect invocation (using `.call()` or `.apply()`) or create a bound function (`.bind()`).
+
+    const numbers = {
+        numberA: 5,
+        numberB: 10,
+
+        sum: function() {
+            console.log(this === numbers); // => true
+
+            function calculate() {
+                // this = window or undefined in strict mode
+                console.log(this === numbers); // => false
+                return this.numberA + this.numberB;
+            }
+
+            return calculate();
+        }
+    };
+
+In above, `numbers.sum()` is a *method invocation* on an object, thus `this` = `numbers`.
+
+Although `calculate()` is defined inside sum, it is a *function evocation*, not a *method invocation*, so `this === numbers` returns `false` because `this` refers to the global context, where `this === window` (or, in strict mode, `undefined`).
+
+Also, in strict mode, the result of invoking `numbers.sum()` is `NaN` or `TypeError`, because `this.` is used inside `calculate()`. To solve this issue, `calculate()` needs to execute with the same context as `numbers.sum()`.
+
+One solution: manually change the context of `calculate()`  with `calculate.call(this)` (an indirect invocation of a function).
+
+    const numbers = {
+        numberA: 5,
+        numberB: 10,
+
+        sum: function() {
+            console.log(this === numbers); // => true
+
+            function calculate() {
+                console.log(this === numbers); // => true
+                return this.numberA + this.numberB;
+            }
+
+            // use .call() method to modify the context
+            return calculate.call(this);
+        }
+    };
+    numbers.sum(); // => 15
+
+`calculate.call(this)` executes `calculate()` as usual, but modifies the context to a value specified as the first argument. So, now `calculate()` can access `numberA`/B.
+
+Another slightly better solution is to use an arrrow function:
+
+    const numbers = {
+        numberA: 5,
+        numberB: 10,
+
+        sum: function() {
+            console.log(this === numbers); // => true
+
+            const calculate = () => {
+                console.log(this === numbers); // => true
+                return this.numberA + this.numberB;
+            }
+
+            // use .call() method to modify the context
+            return calculate();
+        }
+    };
+    numbers.sum(); // => 15
+
+The arrow function resolves `this` *lexically* (uses `this` value of `numbers.sum()`).
+
+### Method invocation
+
+**method**: function stored in a property of an object.
+
+    const myObject = {
+        // helloMethod is a method
+        helloMethod: function() {
+            return 'Hello World!';
+        }
+    };
+    const message = myObject.helloMethod();
+
+To access `helloMethod`, you use a property accessor `myObject.helloMethod`.
+
+This is **method invocation**, when an expression in the form of a property accessor (that evaluates to a function object) is followed by `()`.
+
+Obviously, method invocation is different from function invocation, which is important.
+
+    const words = ['Hello', 'World'];
+    words.join(', ');   // method invocation
+
+    const obj = {
+        myMethod() {
+            return new Date().toString();
+        }
+    };
+    obj.myMethod();     // method invocation
+
+    const func = obj.myMethod;
+    func();             // function invocation
+    parseFloat('16.6'); // function invocation
+    isNaN(0);           // function invocation
+
+See above example: `func()` is a function invocation, even though it includes a method invocation. See notes on "Pitfall: separating method from its object".
+
+In method invocations `this` is the **object that owns the method**.
+
+    const calc = {
+        num: 0,
+        increment() {
+            console.log(this === calc); // => true
+            this.num += 1;
+            return this.num;
+        }
+    };
+    // method invocation. this is calc
+    calc.increment(); // => 1
+    calc.increment(); // => 2
+
+In above, in `calc.increment()`, `this.num` is set to the context of `calc`, so you can use `this` for that.
+
+Also, as noted earlier, JS objects inherit methods from their prototype. But, when an inherited method is invoke on the object, the context is the object itself, not the prototype.
+
+    const myDog = Object.create({
+        sayName() {
+            console.log(this === myDog); // => true
+            return this.name;
+        }
+    });
+    myDog.name = 'Milo';
+    // method invocation. this is myDog
+    myDog.sayName(); // => 'Milo'
+
+`Object.create()` creates a new object, assigned to `myDog`, and sets its prototype from the first argument, the object `{ sayName() { return this.name; } }`. Obviously, `myDog.sayName()`'s context is myDog.
+
+ECMAScript 2015 `class` syntax: the method invocation context is also the instance itself:
+
+    class Planet {
+        constructor(name) {
+            this.name = name;
+        }
+        getName() {
+            console.log(this === earth); // => true
+            return this.name;
+        }
+    }
+    const earth = new Planet('Earth');
+    // method invocation. the context is earth
+    earth.getName(); // => 'Earth'
+
+#### Pitfall: separating method from its object
+As seen in a previous example, `const func = obj.myMethod;`, calling `func()` will be a *function invocation*, NOT method invocation. So, when calling `func()`, `this` will actually be `window`.
+
+If you don't want `this` to be global context, then create the separated variable with `const func = myobj.myMethod.bind(myObj)`. Adding `.bind(object)` fixes the context to the `object` that is passed, which is not necessarily the object that owns the method!
+
+    function Pet(type, legs) {
+        this.type = type;
+        this.legs = legs;
+        this.logInfo = function() {
+            console.log(this === myCat); // => true if not passed as param, false if it is
+            console.log(`The ${this.type} has ${this.legs} legs`);
+        }
+    }
+    const myCat = new Pet('Cat', 4);
+    // logs "The undefined has undefined legs"
+    // or throws a TypeError in strict mode
+    setTimeout(myCat.logInfo, 1000);
+
+In the above example, `myCat.logInfo()` is separated from its object when passed into `setTimeout(myCat.logInfo, 1000);`. The following cases are equivalent:
+
+    setTimeout(myCat.logInfo);
+    // is equivalent to:
+    const extractedLogInfo = myCat.logInfo;
+    setTimeout(extractedLogInfo);
+
+...which means that you've actually done a function invocation instead of a method invocation, so `this` is `window`, NOT `myCat`.
+
+If you were instead to do 
+
+    const myCat = new Pet('Cat', 4);
+
+    const boundLogInfo = myCat.logInfo.bind(myCat); // now logs "The Cat has 4 legs"
+    setTimeout(boundLogInfo, 1000);
+
+Then it would work, as you've set the context correctly.
+
+OR, again, use an **arrow function**, binding `this` lexically.
+
+    function Pet(type, legs) {
+        this.type = type;
+        this.legs = legs;
+        this.logInfo = () => {
+            console.log(this === myCat); // => true
+            console.log(`The ${this.type} has ${this.legs} legs`);
+        };
+    }
+    const myCat = new Pet('Cat', 4);
+    // logs "The Cat has 4 legs"
+    setTimeout(myCat.logInfo, 1000);
+
+If you want to use classes and bind `this` to the class instance in your method, use the arrow function as a *class property*.
+
+    class Pet {
+        constructor(type, legs) {
+            this.type = legs;
+            this.legs = legs;
+        }
+
+        logInfo = () => {
+            console.log(this === myCat); // true
+            console.log(`The ${this.type} has ${this.legs} legs`);
+        }
+    }
+    const myCat = new Pet('Cat', 4);
+    // logs "The Cat has 4 legs"
+    setTimeout(myCat.logInfo, 1000);
+
+### Constructor invocation
+
+Occurs when the `new` keyword is followed by an expression that evaluates to a function object, then `()`. e.g: `new Pet('cat', 4)`
+
+**NOTE**: if the constructor is called without arguments, then you don't need the parentheses, e.g. `const france = new Country`.
+
+ECMAScript 2015: JS allows constructors using `class` syntax.
+
+    class City {
+        constructor(name, traveled) {
+            this.name = name;
+            this.traveled = false;
+        }
+        travel() {
+            this.traveled = true;
+        }
+    }
+    // Constructor invocation
+    const paris = new City('Paris', false);
+    paris.travel();
+
+The object `paris` is initialised via a special class method, `constructor`, which assigns data using `this` as the newly created object.
+
+Important: when a property accessor `myObject.myFunction` is preceded by `new`, JS performs a **constructor invocation**, and NOT a method invocation. How it works: in `new myObject.myFunction()`, the function is first extrtacted using the property accessor `extractedFunction = myObject.myFunction`. Then, it is invoked `new extractedFunction` to create a new object.
+
+
+#### "this" in a constructor invocation
+
+In a constructor invocation, `this` = the **newly created object**. This applies when using both `function` and `class` syntax, but with `class`, the initialisation happens in the `constructor` method.
+
+#### Pitfall: forgetting about new
+
+Some JS functions, e.g. `RegExp`, create instances not only when invoked as constructors, but also when invoked as functions.
+
+    const reg1 = new RegExp('\\w+');
+    const reg2 = RegExp('\\w+');
+
+    reg1 instanceof RegExp; // => true
+    reg2 instanceof RegExp; // => true
+    reg1.source === reg2.source; // => true
+
+As seen here, JS created equivalent regular expression objects.
+
+Excluding [factory patterns](https://www.patterns.dev/posts/factory-pattern/), using function invocation to create objects may cause issues, as some constructors may omit the logic to initialize the object when `new` is missing.
+
+    function Vehicle(type, wheelsCount) {
+        this.type = type;
+        this.wheelsCount = wheelsCount;
+        return this;
+    }
+    // Function invocation
+    const car = Vehicle('Car', 4);
+    car.type; // => 'Car'
+    car.wheelsCount // => 4
+    car === window // => true
+
+In this example, `car` has been created without using `new`. This is fine until you check the context of `this`, which is actually the global object. So what `const car = Vehicle('Car', 4);` did was actually set `type` and `wheelsCount` properties on the **window object** instead of creating a new object, which is a mistake.
+
+Remember to use the `new` operator when you want to use a constructor call!
+
+    function Vehicle(type, wheelsCount) {
+        if (!(this instanceof Vehicle)) {
+            throw Error('Error: Incorrect invocation');
+        }
+        this.type = type;
+        this.wheelsCount = wheelsCount;
+        return this;
+    }
+    // Constructor invocation
+    const car = new Vehicle('Car', 4);
+    car.type               // => 'Car'
+    car.wheelsCount        // => 4
+    car instanceof Vehicle // => true
+    // Function invocation. Throws an error.
+    const brokenCar = Vehicle('Broken Car', 3);
+
+A verification `if (!(this instanceof Vehicle))` is added, to ensure that the execution context is the correct object type, so if you don't use `new`, it will throw an error.
+
+### Indirect invocation
+
+Performed when a function is called using `myFun.call()` or `myFun.apply()`.
+
+Functions in JavaScript are first-class objects, which means that a function is an object. Functions inherit methods from their prototype, the `Function` object, including call and apply, which are used to invoke the function in a configurable context.
+
+So, in `myFunction.call(thisArg, arg1, arg2, ...)`, `call()` accepts the first argument `thisArg` as the context of the invocation. Then, the rest of the arguments, `args...`, are passed as arguments to the called function. Examples:
+
+    function sum(number1, number2) {
+        return number1 + number2;
+    }
+    sum.call(undefined, 10, 2);    // => 12
+    sum.apply(undefined, [10, 2]); // => 12
+
+#### "this" in indirect invocations
+
+`this` is the first argument of .call() or .apply() in an indirect invocation.
+
+    const rabbit = { name: 'White Rabbit' };
+
+    function concatName(string) {
+    console.log(this === rabbit); // => true
+    return string + this.name;
+    }
+
+    // Indirect invocations
+    concatName.call(rabbit, 'Hello ');  // => 'Hello White Rabbit'
+    concatName.apply(rabbit, ['Bye ']); // => 'Bye White Rabbit'
+
+The indirect invocation is useful when a function needs to be executed with a *specific context*, like to solve the context issues with function invocation, or, as in the previous example, to simulate a method call on an object.
+
+Another practical example: creating hierarchies of classes to call the parent constructor:
+
+    function Runner(name) {
+        console.log(this instanceof Rabbit); // => true
+        this.name = name;
+    }
+
+    function Rabbit(name, countLegs) {
+        console.log(this instanceof Rabbit); // => true
+        // Indirect invocation. Call parent constructor.
+        Runner.call(this, name);
+        this.countLegs = countLegs;
+    }
+
+    const myRabbit = new Rabbit('White Rabbit', 4);
+    myRabbit; // { name: 'White Rabbit', countLegs: 4 }
+
+In above, `Runner.call(this, name)` inside `Rabbit`, makes an indirect call of the parent function to initialize the object.
+
+### Bound function
+A function whose context and arguments are bound to specific values. Created using `.bind()`. The original and bound functions share the same scope and code, but have different contexts and arguments on execution.
+
+Unlike `.apply()` and `.call()`, which invoke the function right away, `.bind()` only returns a function to be invoked later with a predefined `this` value.
+
+#### "this" inside a bound function
+`this` is the first argument of myFunc.bind(thisArg, args...) when invoking a bound function.
+
+#### Context binding
+
+Bound functions have their context **permanently linked**. When using call or apply on a bound function, or a rebound, they won't have any effect.
+
+The exception is when making a constructor call `new` on a bound function. But generally you won't want to do this, as constructor invocations require regular functions (not bound).
+
+### Arrow function
+
+Declare function in a shorter form and lexically bind the context.
+
+    const hello = (name) => {
+        return 'Hello ' + name;
+    };
+
+    hello('World'); // => 'Hello World'
+    // Keep only even numbers
+    [1, 2, 5, 6].filter(item => item % 2 === 0); // => [2, 6]
+
+#### `this` in arrow functions
+
+Arrow functions take `this` from the **outer function where it is defined** (resolves `this` lexically).
+
+    class Point {
+        constructor(x, y) {
+            this.x = x;
+            this.y = y;
+        }
+        log() {
+            console.log(this === myPoint); // => true
+            setTimeout(() => {
+            console.log(this === myPoint);      // => true
+            console.log(this.x + ':' + this.y); // => '95:165'
+            }, 1000);
+        }
+    }
+    const myPoint = new Point(95, 165);
+    myPoint.log();
+
+In this example, if we used a regular function inside `setTimeout()`, then that function's `this` would be the global object and you would have to bind it manually `setTimeout(function() {...}.bind(this))`. This is unnecessarily verbose, and using an arrow function is a cleaner solution.
+
+**If an arrow function is defined in the topmost scope** (outside any function), the context is always the global object. An arrow function's `this` CANNOT be changed.
+
+    const getContext = () => {
+        console.log(this === window); // => true
+        return this;
+    };
+    console.log(getContext() === window); // => true
+
+Also, arrow functions will throw an error if used as a constructor.
+
+#### Pitfall: defining method with an arrow function
+Be aware of the context when defining a method.
+
+    function Period (hours, minutes) { 
+        this.hours = hours;
+        this.minutes = minutes;
+    }
+    Period.prototype.format = () => {
+        console.log(this === window); // => true
+        return this.hours + ' hours and ' + this.minutes + ' minutes';
+    };
+    const walkPeriod = new Period(2, 30);
+    walkPeriod.format(); // => 'undefined hours and undefined minutes'
+
+In this example, `Period.prototype.format` is actually a topmost scope arrow function, so its `this` will be `window`. You'll have to use a **function expression** for this, as a regular function **does** change its context depending on invocation. (it's not a function invocation)
+
+    Period.prototype.format = function() {
+        console.log(this === walkPeriod); // => true
+        return this.hours + ' hours and ' + this.minutes + ' minutes';
+    };
+
+### That was a lot, TL;DR
+
+Function invocation has the biggest impact on `this`. 
+
+Don't ask "where is `this` taken from?"
+
+DO ask, "How is the function invoked?"
+
+For arrow functions, ask "What is `this` within the outer function, where the arrow function is defined?"
+
+## Prototypal Inheritance methods
+
+At this point in time, the recommended way of setting the prototype of an object is `Object.create`. Simply, it returns a new object with the specified prototype and any additional properties you want to add.
+
+    function Student()  {
+
+    }
+
+    Student.prototype.sayName = function() {
+        console.log(this.name)
+    }
+
+    function EighthGrader(name) {
+        this.name = name
+        this.grade = 8
+    }
+
+    EighthGrader.prototype = Object.create(Student.prototype)
+
+    const carl = new EightGrader("carl");
+
+    carl.sayName() // "carl"
+    carl.grade // 8
+
+After creating the constructor for EighthGrader, we set its prototype to **a new object with the prototype** `Student.prototype`, i.e. an empty object with its `__proto__` pointing to `Student.prototype`. 
+
+DON'T do this: `EighthGrader.prototype = Student.prototype` because it will set EighthGrader's prototype to `Student.prototype`, NOT a copy, which will cause problems editing in the future, as any changes you make to the object prototype will also unintentionally apply to any other objects that are inheriting from that prototype.
+
+Instead, by doing `EighthGrader.prototype = Object.create(Student.prototype)`, you will create a copy of an object that inherits from `Student.prototype`. So any changes that you make to this object will remain unique to it.
+
+### Exercises at the end of the page
+
+function Pet(name, type) {
+    this.name = name;
+    this.type = type;
+}
+
+Pet.prototype.getInfo = function() {
+    return `This is ${this.name}, a ${this.type}.`;
+}
+
+let Bobby = new Pet('Bobby', 'dog');
+console.log(Bobby);
+
+A prototype is an object that contains methods and properties that other objects inherit when they inherit from that prototype.
+
+Prototypal inheritance is when an object's prototype points to an object, allowing the object to inherit the methods and properties available to the prototype. When a method or prototype is accessed on an object that does not explicitly have it defined, the engine will look for it on the prototype (and so on until there are no more prototypes).
+
+DO:
+Set prototypes using `object.prototype = Object.create(prototype)`
+Be aware of the different ways that `this` can evaluate
+
+DON'T:
+Set prototypes in a circle, it won't work
+Use `__proto__`
+Set functions in the constructor of a prototype, or it will be duplicated every time
+
+`Object.create()` creates a new object with a prototype specified.
+
+`this`:
+In function invocation, `this` = window/global object, or undefined in strict mode
+Method invocation: `this` is the object that the method belongs to
+Constructor: `this` is the new Object created by the constructor call
+Indirect: when `.call(object)` or `.apply(object)` are used on a function, the first argument is the context that will be used for `this`
+Bound: the first argument of `.bind(object)` is also used as `this`
+Arrow function: `this` is the outer function that the arrow function was declared in. If declared outside a function, `this` will be the global object.
+
+### Why declare object method using prototype?
+Why not declare object methods in the constructor?
+
+// Constructor function:
+const Dog = function(name) {
+    this.Name = name;
+    this.Bark = function() {
+        alert(this.Name + " bark");
+    };
+}
+
+Instead of putting it on the prototype object?
+
+    const Dog = function(name) {
+        this.Name = name;
+    }
+
+    Dog.prototype.Bark = function() {
+        alert(this.Name + " bark");
+    };
+
+[In general, it depends.](https://stackoverflow.com/questions/9772307/declaring-javascript-object-method-in-constructor-function-vs-in-prototype/9772864#9772864)
+
+The main advantage of the constructor approach is that you can take advantage of the local scope to use variables defined within the constructor. These variables are otherwise "private", which means your API is cleaner than if these were instead defined as properties of the object.
+
+- If your methods don't use local variables defined in the constructor, don't use that approach
+- If you're going to be creating lots of `Dog`s, use the prototype approach instead, as that way they will all share one set of functions. If you do the constructor way, a new set of functions will be created each time the constructor is called, consuming more memory.
+
+It may be worth it to use different approaches depending on the needs of the situation, e.g. if your methods require a local private constructor variable, declare it there.
+
+Example given: local variable in the constructor tracks number of times dog has barked, while keeping the value private. `.wagTail()` doesn't use any private variables.
+
+    const Dog = function(name) {
+        this.name = name;
+
+        var barkCount = 0;
+
+        this.bark = function() {
+            barkCount++;
+            alert(this.name + " bark");
+        };
+
+        this.getBarkCount = function() {
+            alert(this.name + " has barked " + barkCount + " times");
+        };
+    };
+
+    Dog.prototype.wagTail = function() {
+        alert(this.name + " wagging tail");
+    };
+
+    var dog = new Dog("Dave");
+    dog.bark();
+    dog.bark();
+    dog.getBarkCount();
+    dog.wagTail();
+
+## Factory Functions & the Module Pattern
+
+If you use an object constructor without the keyword `new`, you'll introduce an error, but it won't be easy to trace.
+
+So instead of using constructors, you can use *factory functions*. Without using `new`, they set up an return the new object when called.
+
+    const personFactory = (name, age) => {
+        const sayHello = () => console.log('hello');
+        return { name, age, sayHello };
+    };
+
+    const jeff = personFactory('jeff', 27);
+
+### Object shorthand
+Quick note about `return { name, age, sayHello };` - this is new syntax for creating objects from 2015. Without this, that line would look like `return {name: name, age: age, sayHello: sayHello};`
+
+If you're creating an object where you are **referring to a variable that has the exact same name as the object property you're creating**, you can use `return { name, age, sayHello }`.
+
+With that in mind, check this out:
+
+    const name = "Maynard";
+    const color = "red";
+    const number = 34;
+    const food = "rice";
+
+    // logging all of these variables might be a useful thing to do,
+    // but doing it like this can be somewhat confusing.
+    console.log(name, color, number, food); // Maynard red 34 rice
+
+    // if you simply turn them into an object with brackets,
+    // the output is much easier to decipher:
+    console.log({name, color, number, food});
+    // { name: 'Maynard', color: 'red', number: 34, food: 'rice' }
+
+## Scope and Closure
+
+This is important sooooooo
+
+In the following example, do you know what will be logged on the last line?
+
+    let a = 17;
+
+    const func = x => {
+    let a = x;
+    };
+
+    func(99);
+
+    console.log(a); // ???????
+
+My answer: 17. Because a new `let a` is declared inside `func`. But it was declared within the scope of func, so it doesn't affect the a outside the function.
+
+Edit code to print the other value:
+
+    let a = 17;
+
+    const func = x => {
+        a = x;
+    };
+
+    func(99);
+
+    console.log(a);
+
+I removed the `let` so that the a within func is referring to the a outside the arrow function. Now it is assigning x to a instead of creating a new a.
+
+### Global Scope
+Not being careful with how you use global scope may cause *namespace clashes*.
+
+Namespace - sometimes interchangeable word for scope, but usually refers to the highest level scope. e.g. when using jQuery, you access it in global scope. The jQuery namespace is defined in the global scope, which acts as a namespace for the jQuery library, as everything inside it becomes a descendent of that namespace.
+
+### Local scope/function scope
+
+Every function has its own (nested) local scope.
+
+### Lexical scope
+
+A function within another function has access to the scope in the outer function. That is *Lexical Scope* or *Closure*, also referred to as *Static Scope*.
+
+### Scope Chain
+
+JS checks the innermost scope, then searches outwards (up the scope chain).
+
+### Closures
+
+Ties closely with lexical scope. See the below function, which doesn't do anything when called normally, as it returns a function with a reference to a variable.
+
+    let sayHello = function(name) {
+        let text = 'Hello, ' + name;
+        return function() {
+            console.log(text);
+        }
+    }
+
+The *closure* concept makes the scope inside `sayHello` inaccessible to the public scope.
+
+Calling this function won't do anything as it returns a function, unless...
+
+    sayHello('Todd'); // does nothing
+
+    let helloTodd = sayHello('Todd');
+    helloTodd(); // this works
+
+    sayHello('Todd')(); // calls the returned function, without needing assignment
+
+Apparently AngularJS uses the third method for its `$compile` method, where the current scope reference is passed into the closure:
+
+    $compile(template)(scope);
+
+So the code would (as a very simplified example) look like...
+
+    var $compile = function(template) {
+        // code
+        return function(scope) {
+            // template and scope and accessible here
+        }
+    }
+
+### Not "this" again
+
+So actually you can cache a reference to your preferred "this", I guess in a `that` variable, so you can refer to the lexical binding instead.
+
+    let nav = document.querySelector('.nav'); // <nav class="nav">
+    let toggleNav = function () {
+        let that = this; // that = <nav> element
+        setTimeout(function() {
+            console.log(that); // <nav> element
+        }, 1000);
+    };
+    nav.addEventListener('click', toggleNav, false);
+
+In the context of the event listeners, `this` (outside of the function invocation) refers to the nav element, so capturing a reference to it allows you to easily access it within the setTimeout function invocation without issue (where `this` would otherwise refer to the global object).
+
+### Private and Public Scope
+
+In JS there is no such thing. You can only *emulate* private/public scope using things like closures. Using the JavaScript design pattern, e.g. the `Module` pattern.
+
+A simple way to create private scope is wrapping functions inside functions. 
+
+    (function () {
+        var myFunction = function () {
+            // do some stuff here
+        };
+    })();
+
+myFunction(); // Uncaught ReferenceError: myFunction is not definedBUT, what if you want the function to be public?
+
+Use the **Module Pattern** (and Revealing Module Pattern) to scope functions correctly, using private and public scope and an Object. In below, the global namespace, called `Module`, contains the relevant code for that module.
+
+    // define module
+    var Module = (function () {
+        return {
+            myMethod: function() {
+                console.log('myMethod called');
+            }
+        };
+    })();
+
+    // To call the module + methods
+    Module.myMethod();
+
+The `return` statement is what returns the `public` methods, accessible in the global scope, but also `namespaced`. So the module takes care of the namespace, and can contain as many methods as you want.
+
+You can extend Module as needed:
+
+    // define module
+    let Module = (
+        function() {
+            return {
+                myMethod: function() {
+                    // code
+                },
+                someOtherMethod: function() {
+                    // other code
+                }
+            };
+        }
+    )();
+
+    // call module + methods
+    Module.myMethod();
+    Module.someOtherMethod();
+
+Also, `this` will work as if they are method invocations (because they are).
+
+#### Private methods
+
+There is no need to pollute the global namespace by putting all fuctions in the global scope. Functions that help our code work don't need to be global, only API calls (and other things that need to accessed globally). 
+
+    let Module = (function() {
+        let privateMethod = function() {
+            // private code
+        };
+        return {
+            publicMethod: function() {
+                // public code
+                // Has access to privateMethod even after returned!
+            }
+        }
+    })();
+
+With this, `publicMethod` can be called, and `privateMethod` can't.
+
+**NOTE**: Returned (public) methods *can still access private methods*, so they can continue to interact while being inaccessible in the global scope!
+
+Code security is hugely important in JavaScript, which is why you can't put all your functions in the global scope - they'll be vulnerable to attacks.
+
+#### Naming convention for private methods
+
+To differentiate between private and public methods, use `_` as a prefix.
+
+    let Module = (function() {
+        let _privateMethod = function() {
+            // code
+        }
+        let publicMethod = function() {
+            // code
+        }
+        return {
+            publicMethod: publicMethod
+        }
+    })();
+
+This helps when returning an anonymous Object, which the module can use in Object fashion, as we can simply assign the function references.
+
+### How `let` and `const` are scoped in ES6
+
+`var` - global scope. However, if declared within a function, it leaks onto the global scope.
+
+#### Block Scope
+
+When you see `{}` curly brackets, that's a block. Functions are also blocks. The difference between `let`/`const` and `var` is that `let` and `const` are limited to within that block (the closest set of curly brackets).
+
+## Private Variables and Functions
+
+Applying scope to the Factory Function...
+
+    const FactoryFunction = string => {
+        const capitalizeString = () => string.toUpperCase();
+        const printString = () => console.log(`----${capitalizeString()}----`);
+        return { printString };
+    };
+
+    const taco = FactoryFunction('taco');
+
+    // Prints "----TACO----"
+    taco.printString();
+    
+    // All the below return ERRORs
+    printString();
+    capitalizeString();
+    taco.capitalizeString();
+
+Because of scope, the only thing that can be accessed is the function that was returned. Note that even though we can't actively access `capitalizeString()`, `printString()` still can.
+
+Functions retain their scope even if they are passed around and called outside their scope.
+
+    const counterCreator = () => {
+        let count = 0;
+        return () => {
+            console.log(count);
+            count++;
+        }
+    }
+
+    const counter = counterCreator();
+
+    counter();
+
+Because you can make private functions, even though your object does one or two things, you can split your functions up as much as you want for better readability. Then, you can only export the functions that the rest of the program will use.
+
+You should use private functions as much as possible.
+
+## Factory Functions and Inheritance
+
+## var/let/const
+Basically, `var` uses **function** scope. That is, it is available throughout any function it is declared within. If you declare a var inside an if statement, it will be accessible outside that if statement.
+It CAN be redeclared within the same scope. It CAN be accessed before initialisation (will be `undefined` but won't throw an error), aka will be hoisted.
+
+`let` uses **block scope**, CANNOT be redeclared within the same scope, and CANNOT be accessed before initialisation (will throw error) (won't be hoisted?)
+
+`const` uses block scope, cannot be redeclared, cannot be reassigned at all (no `myConst = newValue`), cannot be accessed before initialisation/won't be hoisted.
+
+### Function scope vs block scope
+Function scope: when a variable is declared inside a function, it is only accessible within that function, and cannot be used outside that function. BUT, within that function, it is accessible anywhere.
+
+    function hello() {
+        console.log(a); // undefined, NOT error
+        if (true) {
+            var a = 'hello';
+        }
+        console.log(a); // hello
+    }
+You can't do this with `let` or `const`! If the above example is written with `let a` or `const a`, both console.logs will throw errors.
+
+Block scope: A variable, when declared inside the if or switch conditions, or inside for/while loops, are accessible within that particular condition or loop, but NOT accessible outside that "block" (`{}`).
+
+## Event loop
+JS has a runtime model, based on an **event loop**, which is responsible for executing the code, collecting and processing events, and executing queued sub-tasks. These notes will be written from [MDN](https://developer.mozilla.org/en-US/docs/Web/JavaScript/EventLoop), where it's stated that these runtime concepts are theoretical. Modern JS engines implement and heavily optimise the described semantics.
+
+An event loop has one or more task queues, which is a **set** of tasks. They are sets, NOT queues, because the event loop processing model grabs the first runnable task from the chosen queue, instead of dequeuing the first task.
+- Task: a task is a struct which has:
+    - steps: a series of steps specifying the work to be done by the task
+    - a source: one of the task sources, used to group and serialize related tasks
+    - a Document associated with the task, or null for tasks that are not in a window event loop
+    - a script evaluation environment settings object set, a set of environment settings objects used for tracking script evaluation during the task.
+- Runnable: A task is runnable if its document (DOM) is either `null` or fully active.
+- Fully active: A Document `d` is fully active when `d` is the active document of a navigable navigable, and either navigable is a top-level traversable or navigable's container document is fully active.
+- Navigable: presents a Document to the user via its active session history entry. [Further reading](https://html.spec.whatwg.org/multipage/document-sequences.html#navigable)
+- Dequeue: to remove its first item and return it, if the queue is not empty, or to return nothing if it is.
+
+### Stack
+Function calls form a stack of **frames**. From below,
+
+    function foo(b) {
+        const a = 10;
+        return a + b + 11;
+    }
+
+        function bar(x) {
+        const y = 3;
+        return foo(x * y);
+    }
+
+    const baz = bar(7); // assigns 42 to baz
+
+The order of operations will be:
+1. When calling `bar`, a first frame is created containing references to `bar`'s arguments, and local variables.
+2. When `bar` calls `foo`, a second frame is created and pushed *on top of* the first one. It contains references to `foo`'s argument's and local variables.
+3. When `foo` returns,  the top frame element is popped out of the stack (only `bar`'s call frame is left.)
+4. When `bar` returns, the stack is now empty.
+So, the stack can be visualised as each function call stacking frames on top of each other, then emptying top-down as they are resolved in sequence.
+Note that the arguments and local variables may continue to exist, as they are stored outside the stack - so they can be accessed by any *nested functions* long after their outer function has returned.
+
+[Further reading](https://www.javascripttutorial.net/javascript-call-stack/)
+
+### Heap
+Objects are allocated in a **heap**, which is a name to denote a large and mostly unstructured region of memory.
+
+### Queue
+A JS runtime uses a message queue, which is a list of messages to be processed. Each message has an associated function that is called to handle the message.
+
+At some point during the event loop, the runtime starts handling the messages on the queue, starting with the **oldest** one. To do this, the message is removed from the queue and its corresponding function is called with the message as an input parameter. This will create a new stack frame.
+
+The processing of functions continues until the stack is empty again. Then, the event loop will process the next message in the queue, if there is one.
+
+### Event loop
+The event loop got its name because of how it's usually implemented, which resembles:
+
+    while (queue.waitForMessage()) {
+        queue.processNextMessage();
+    }
+`queue.waitForMessage()` waits synchronously for a message to arrive (if one is not already available and waiting to be handled).
+
+#### Run to completion
+Each message is *processed completely* before any other message is processed.
+
+When reasoning about your program, this offers some nice properties: the fact that whenever a function runs, it cannot be preempted and *will run entirely before any other code runs*. So, no other code can modify the data that the function manipulates mid-run. This is different from C, where a function running in a thread can be stopped by the runtime system to run other code in another thread.
+
+The downside of this model is that if a message takes too long to complete, the web application will be unable to process user interactions (e.g. click or scroll) (in other words, the browser hangs). The browser will mitigate this with the "a script is taking too long to run" dialog.
+
+A good practice to follow is to make message processing short, and if possible, cut down one message into several.
+
+#### Adding messages
+In browsers, messages are added **anytime an event occurs and there is an event listener attached to it**. (if there isn't a listener, the event is lost)
+
+The function `setTimeout` is called with 2 arguments: a message to add to the queue, and a time value (optional, defaults to 0, in ms). The time value represents the *minimum delay* after which the message will be pushed into the queue. If there are other messages in the queue, it won't be processed immediately. Hence, think of setTimeout as "don't execute this message before *this many* ms", instead of "after *this many* ms, immediately execute this message".
+
+#### Zero delays
+*Zero delay* does not mean the callback fires after 0ms. The execution depends on the number of waiting tasks in the queue.
+
+    (() => {
+
+        console.log('this is the start');
+
+        setTimeout(() => {
+            console.log('Callback 1: this is a msg from call back');
+        }); // has a default time value of 0
+
+        console.log('this is just a message');
+
+        setTimeout(() => {
+            console.log('Callback 2: this is a msg from call back');
+        }, 0);
+
+        console.log('this is the end');
+
+    })();
+
+The above example will output
+
+    // "this is the start"
+    // "this is just a message"
+    // "this is the end"
+    // "Callback 1: this is a msg from call back"
+    // "Callback 2: this is a msg from call back"
+
+Because `setTimeout` needs to wait for ALL the code for queued messages to complete. Even though neither callback has a delay above 0, that is the *minimum* time to wait until the message is processed.
+
+#### Several runtimes communicating together
+A web worker or cross-origin `iframe` has its own stack, heap, and message queue. To distinct runtimes can only communicate through sending messages via the method `postMessage`. This method adds a message to the other runtime if it is listening to `message` events.
+
+### Never blocking
+An interesting property of the event loop model is that JavaScript, unlike a lot of other languages, **never blocks**. Handling I/O (input/output) is typically performed via events and callbacks, so while the application is waiting for an IndexedDB query to return or an XHR request to return, other things like user input can still be processed.
+
+*Legacy exceptions do exist*, such as `alert` or synchronous XHR, but it's good practice to avoid them.
+
+### Single-threaded model
+JS is single threaded, which means it can do only one thing at any single point in time.
+
+The JS engine executes a script from the top of the file and works its way down, starting with creating the execution contexts, then pushing/popping functions on and off the **call stack** in the execution phase. 
+
+A function that takes a long time to complete is called a blocking function, as it technically blocks all user interactions on the webpage. e.g. a function that calls an API from a remote server, or a very big loop.
+
+To prevent a blocking function from blocking other activities, you typically put it in a callback function for execution later. e.g
+
+    console.log('Start script...');
+
+    setTimeout(() => {
+        task('Download a file.');
+    }, 1000);
+
+    console.log('Done!');
+
+The above outputs:
+    Start script...
+    Done!
+    Download a file.
+
+Earlier we said the JS engine can only do one thing at a time. But it's more accurate to say that the JS runtime can do one thing at a time. The web browser has other components, not just the JS engine, so when you call `setTimeout`, make a fetch request, click a button etc. the browser can do these activities concurrently and asynchronously. 
+
+Note that `setTimeout`, fetch requests and DOM events are part of the Web APIs of the web browser. So...
+
+In the example script above, when calling `setTimeout`, the JS engine places it on the call stack, and the Web API creates a timer that expires in one second (1000ms). Then, JS engine places the `task()` function into a queue, called the **callback queue** or **task queue**.
+
+The **event loop** is a constantly running process that monitors both the callback queue and the call stack.
+
+IF the call stack is not empty, the event loop waits until it IS empty, then places the next function from the callback queue to the call stack. (if the queue is empty,nothing happens).
+
+As another example:
+
+    console.log('Hi!');
+
+    setTimeout(() => {
+        console.log('Execute immediately.');
+    }, 0);
+
+    console.log('Bye!');
+
+In this, both console.logs execute before the setTimeout, even though there's no delay. This is because the JS engine places the `console.log('Execute immediately.');` function call on the **callback queue**, and *executes it when the callback is empty*. Due to this, `console.log('Hi!');` and `console.log('Bye!');` are placed into the call stack and executed first, THEN the setTimeout callback is executed.
+
+    Hi!
+    Bye!
+    Execute immediately.
+
+## Promise
+A **Promise** is an object representing the eventual completion or failure of an asynchronous operation.
+
+It is essentially a returned object to which you attach callbacks, instead of passing callbacks into a function. For example, a function `createAudioFileAsync()` asynchronously generates a sound file given a configuration record and two callbacks: one for if the audio file is successfully created, and the other if an error occurs.
+
+Here is the above function, written without a promise:
+    function successCallback(result) {
+        console.log(`Audio file ready at URL: ${result}`);
+    }
+
+    function failureCallback(error) {
+        console.error(`Error generating audio file: ${error}`);
+    }
+
+    createAudioFileAsync(audioSettings, successCallback, failureCallback);
+
+And here is `createAudioFileAsync()` written as a promise:
+
+    createAudioFileAsync(audioSettings).then(successCallback, failureCallback);
+
+There are many advantages to promises.
+
+### Chaining
+You commonly need to execute two or more asynchronous operations back to back, where each subsequent operation starts when the previous one succeeds, using results from the previous step. Without promises, you would quickly find yourself in a callback pyramid from hell.
+
+WITH promises, you can make a **promise chain**. The API design of promises attaches callbacks to the *returned* promise object, instead of being passed into a function.
+
+The magic: the `then()` function returns a **new promise**, different from the original.
+
+    const promise = doSomething();
+    const promise2 = promise.then(successCallback, failureCallback);
+
+`promise2` represents the completion not just of `doSomething()`, but also of the `successCallback` or `failureCallback`.
+
+With this pattern, you can make longer chains of processing, where each promise represents the completion of one asynchronous step in the chain. In addition, the arguments to `then` are **optional**, and `catch(failureCallback)` is short for `then(null, failureCallback)`. SO, if your error handling code is the same for all steps, you can just attach this to the end of the chain:
+
+    doSomething()
+        .then(function (result) {
+            return doSomethingElse(result);
+        })
+        .then(function (newResult) {
+            return doThirdThing(newResult);
+        })
+        .then(function (finalResult) {
+            console.log(`Got final result: ${finalResult}`);
+        })
+        .catch(failureCallback);
+
+This can be expressed with arrow functions instead:
+
+    doSomething()
+    .then((result) => doSomethingElse(result))
+    .then((newResult) => doThirdThing(newResult))
+    .then((finalResult) => {
+        console.log(`Got final result: ${finalResult}`);
+    })
+    .catch(failureCallback);
+
+**IMPORTANT**: ALWAYS return results, otherwise callbacks won't catch the result of a previous promise (with arrow functions, `() => x` is short for `() => {return x;}`). If a previous handler started a promise but did not return it, there's no way to track its settlement anymore, and the promise is then said to be "floating".
+
+This may be worse if you have race conditions, as if the promise from the last handler is not returned, the `then` handler will be called early, reading incomplete values.
+
+So, as a rule of thumb, whenever your operation encounters a promise, return it and defer its handling to the next `then` handler.
+
+    const listofIngredients = []l
+
+    doSomething()
+        .then((url) => {
+            fetch(url)
+                .then((res) => res.json())
+                .then((data) => {
+                    listOfIngredients.push(data);
+                }),
+        )
+        .then(() => {
+            console.log(listOfIngredients);
+        })
+    
+    // OR
+
+    doSomething()
+        .then((url) => fetch(url))
+        .then((res) => res.json())
+        .then((data) => {
+            listOfIngredients.push(data);
+        })
+        .then(() => {
+            console.log(listOfIngredients);
+        });
+
+### Nesting
+
+In the examples above, the first one has a promise chain nested in the return value of another `then()` handler, while the second uses an entirely flat chain.
+
+Simple promise chains are best kept flat without nesting, as nesting can be a result of careless composition. Nesting is a control structure to limit the scope of `catch()` statements. Specifically, a nested `catch()` only catches failures in its scope and below, not higher up the chain outside the nested scope. When used correctly, this gives more accurate error recovery:
+
+    doSomethingCritical()
+        .then((result) =>
+            doSomethingOptional(result)
+                .then(optionalResult) =>
+                    doSomethingExtra(optionalResult))
+            .catch((e) => {}),
+            ) // Ignore if optional stuff fails; proceed
+            .then(() => moreCriticalStuff())
+            .catch((e) => console.error(`Critical failure: ${e.message}`))
+
+Note that optional steps here are nested, with the nesting caused not by the indentation, but by hte placement of the outer `()` around the steps.
+
+The inner error-silencing `catch` handler only catches failures from `doSomethingOptional()` and `doSomethingExtra()`, after which the code resumes with `moreCriticalStuff()`. Importantly, if `doSomethingCritical()` fails, its erro is caught by the final `catch`, and does not get eaten by the inner `catch` handler.
+
+### Chaining after a catch
+It's possible to chain *after* a failure, which is useful to accomplish new actions even after an action failed in the chain.
+
+    new Promise((resolve, reject) => {
+        console.log("initial");
+
+        resolve();
+    })
+        .then(() => {
+            throw new Error ("Something failed");
+
+            console.log("Do this");
+        })
+        . catch(() => {
+            console.error("Do that");
+        })
+        .then (() => {
+            console.log("Do this, no matter what happened before");
+        });
+
+        // OUTPUT:
+        // Initial
+        // Do that
+        // Do this, no matter what happened before
+
+Note that "Do this" is NOT output, because the error caused a rejection.
+
+### Common mistakes
+When composing promise chains, look out for these:
+
+    doSomething()
+        .then(function(result) {
+            // Forgot to return promise from inner chain + unnecessary nesting
+            doSomethingElse(result).then((newResult) => doThirdThing(newResult));
+        })
+        .then(() => doFourthThing());
+    // Forgot to terminate chain with a catch!
+
+**First mistake**: not chaining things together properly. This happens when we create a new promise but forget to return it. Consequently, the chain is broken, or rather we now have 2 independent chains racing. This means `doFourthThing()` won't wait for `doSomethingElse` and `doThirdThing` to finish, and will run in parallel with them, which is likely unintended.
+
+Separate chains also have separate error handling, leading to uncaught errors.
+
+**Second mistake**: nesting unnecessarily, enabling the first mistake. A variant of this is the[ promise constructor anti-pattern](https://stackoverflow.com/questions/23803743/what-is-the-explicit-promise-construction-antipattern-and-how-do-i-avoid-it), which combines nesting with redundant use of the promise constructor to wrap code that already uses promises.
+
+**Third mistake**: forgetting to terminate chains with `catch`. Unterminated promise chains lead to uncaught promise rejections in most browsers.
+
+A good rule of thumb is to always return or terminate promise chains, and as soon as you get a new promise, return it immediately, to flatten things.
+
+doSomething()
+    .then(function (result) {
+        // If using a full function expression: return the promise
+        return doSomethingElse(result);
+    })
+    // If using arrow functions: omit the braces and implicitly return the result
+    .then((newResult) => doThirdThing(newResult))
+    // Even if the previous chained promise returns a result, the next one
+    // doesn't necessarily have to use it. You can pass a handler that doesn't
+    // consume any result.
+    .then(() => doFourthThing())
+    // Always end the promise chain with a catch handler to avoid any
+    // unhandled rejections!
+    .catch((error) => console.error(error));
+
+Using **async/await** addresses most if not all of these problems, the tradeoff being that it may be easy to forget the **await** keyword.
+
+### Error handling
+If there are exceptions, the browser will look down the chain for `.catch()` handlers or `onRejected`. This is modeled after how synchronous code works:
+
+    try {
+        const result = syncDoSomething();
+        const newResult = syncDoSomethingElse(result);
+        const finalResult = syncDoThirdThing(newResult);
+        console.log(`Got the final result: ${finalResult}`);
+    } catch (error) {
+        failureCallback(error);
+    }
+
+This symmetry with asynchronous code culminates in the async/await syntax:
+
+    async function foo() {
+        try {
+            const result = await doSomething();
+            const newResult = await doSomethingElse(result);
+            const finalResult = await doThirdThing(newResult);
+            console.log(`Got the final result: ${finalResult}`);
+        } catch (error) {
+            failureCallback(error);
+        }
+    }
+
+It builds on promises - e.g. `doSomething()` is the same function as before, so there's minimal refactoring needed to change from promises to `async`/`await`.
+
+#### Promise rejection events
+If a promise rejection is not handled by any handler, it bubbles to the top of the call stack, and the host needs to surface it. On the web, when a promise is rejected, one or two events is sent to the global scope:
+- `rejectionhandled` - sent when a promise is rejected, after that rejection has been handled by the executor's `reject` function
+- `unhandledrejection` - sent when a promise is rejected but there's no rejection handler available
+In both cases, the event (of type `PromiseRejectionEvent`) has a `promise` property indicating the promise that was rejected, and a `reason` property giving a reason.
+
+With these, you can offer fallback error handling for promises, as well as debug issues with your promise management.
+
+### Composition
+There are four composition tools for running asynchronous operations concurrently:
+- `Promise.all()`
+- `Promise.allSettled()`
+- `Promise.any()`
+- `Promise.race()`
+
+We can start operations in parallel and wait for them all to finish like this:
+
+    Promise.all( [ func1(), func2(), func3() ] )
+        .then( ([result1, result2, result3]) => {
+            // use result1, result2, and result3
+    });
+
+As seen above, `Promise.all()` takes an **array** of callbacks, and returns an array of corresponding results.
+
+If one of the promises in the array rejects, `Promise.all()` immediately rejects the returned promise and aborts the other operations, which may cause unexpected state or behaviour.
+
+Like `Promise.all()`, `Promise.allSetlled()` ensures all operations are complete before resolving.
+
+All these methods run promises in parallel - they are started simultaneously and do not wait for each other. Sequential composition is possible using some clever JS:
+
+    [func1, func2, func3]
+        .reduce((p, f) => p.then(f), Promise.resolve())
+        .then((result3) => {
+            // use result3
+        })
+In above, we **reduce** an array of asynchronous functions down to a promise chain. The code above is equivalent to:
+
+    Promise.resolve()
+        .then(func1)
+        .then(func2)
+        .then(func3)
+        .then((result3) => {
+            // use result3
+        })
+
+This can be made into a reusable compose function, common in functional programming:
+    const applyAsync = (acc, val) => acc.then(val);
+    const composeAsync =
+        (...funcs) =>
+        (x) =>
+            funcs.reduce(applyAsync, Promise.resolve(x));
+
+Before you compose promises sequentially, consider if it's really necessary - it's always better to run promises in parallel so they don't unnecessarily block each other.
+
+### Timing
+
+
+#### Task queues vs microtasks
+Promise callbacks are handled as microtasks, whereas setTimeout callbacks are handled as task queues.
+
+## async
+The `async` function declaration declares an async function where the `await` keyword is permitted within the function body. `async` and `await` enable asynchronous, promise-based behaviour to be written in a cleaner style, so you don't need to explicitly configure promise chains.
+
+Demo:
+
+    function resolveAfter2Seconds() {
+        return new Promise(resolve => {
+            setTimeout(() => {
+                resolve('resolved');
+            }, 2000);
+            })
+        });
+    }
+
+    async function asyncCall() {
+        console.log('calling');
+        const result = await resolveAfter2Seconds();
+        console.log(result);
+    }
+
+    asyncCall();
+
+The above code outputs "resolved" after 2 seconds. Even though `asyncCall()` is called at the start, the `await` keyword delays the execution of the remainder of the function until `resolveAfter2Seconds` is resolved and returns the expected value.
+
+Async functions return a Promise which will be resolved with the value returned by the async function, or rejected with an exception. They **always return a Promise**, so if the return value of an async function is not explicitly a promise, it will be implicitly wrapped in a promise.
+
+    async function foo() {
+        return 1;
+    }
+
+    function foo() {
+        return Promise.resolve(1);
+    }
+
+These two functions are similar. HOWEVER, the return value of an async function is not 100% equivalent to a `Promise.resolve`. An async function will return a different reference, whereas `Promise.resolve` returns the same reference if the given value is a promise. This can cause issues checking the equality of a promise and a returned value from an async function.
+
+    const p = new Promise((res, rej) => {
+        res(1);
+    });
+
+    async function asyncReturn() {
+        return p;
+    }
+
+    function basicReturn() {
+        return Promise.resolve(p);
+    }
+
+    console.log(p === basicReturn()); // true
+    console.log(p === asyncReturn()); // false
+
+Async functions can contain zero or more `await` expressions, which make promise-returning functions behave as though they are synchronous by **suspending execution** until the returned promise is fulfilled or rejected. The resolved value of the promise is treated as the return value of the await expression.
+
+Use of `async`/`await` enables the use of ordinary `try`/`catch` blocks around asynchronous code.
+
+The body of an async function can be thought of as being split by **zero or more** await functions. Top level code up to, and including, the first await expression, is run synchronously. In this way, an async function without an await expression will run synchronously.
+
+If there is an await expression inside the function body, the async function will always complete asynchronously.
