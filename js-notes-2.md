@@ -1715,9 +1715,111 @@ Before you compose promises sequentially, consider if it's really necessary - it
 
 ### Timing
 
-
 #### Task queues vs microtasks
 Promise callbacks are handled as microtasks, whereas setTimeout callbacks are handled as task queues.
+
+## Promise
+
+A promise is a *proxy* for a value that is not necessarily known when the promise is created. It allows you to associate handlers with an asynchronous action's eventual success value or failure reason. This lets asynchronous methods return values like synchronous methods: instead of immediately returning the final value, the asynchronous method returns a **promise** to supply the value at some point in the future.
+
+A promise is in one of three states:
+- pending: initial state, neither fulfilled nor rejected
+- fulfilled: operation completed successfully
+- rejected: operation failed
+
+The eventual state of a pending promise can either be fulfilled with a value or rejected with a reason. When either of these occur, the associated handlers queued up by a promise's `then` method are called. A Promise is said to be *settled* if either fulfilled or rejected.
+
+The term *resolved* used with promises refers to the promise being *settled* or "locked-in" to match the eventual state of another promise - further resolving or rejecting it has no effect. "Resolved" is often used to refer to successfully fulfilled promises, but sometimes it can refer to pending or rejected promises as well.
+
+    new Promise((resolveOuter) => {
+        resolveOuter(
+            new Promise((resolveInner) => {
+            setTimeout(resolveInner, 1000);
+            })
+        );
+    });
+
+Like so, this promise is already *resolved* at the time it's created (because `resolveOuter` is called synchronously), but it is resolved with another promise, so it won't actually be fulfilled until 1 secomd later, when `resolveInner` fulfills.
+
+### Chained promises
+`.then()` takes 2 arguments: first is a callback for the fulfilled case, second is callback for rejected case. Each `.then()` returns a newly generated promise, which can optionally be used for chaining.
+
+It's simpler to leave error handling for a rejected promise to the very end, in a `catch()`, but if an error needs to be handled immediately, you should throw an error of some type to maintain error state down the chain.
+
+NOTE: For faster execution, all synchronous actions should be done within one handler, otherwise it would take several ticks to execute all handlers in sequence.
+
+### Promise Concurrency
+The Promise class offers 4 static methods to facilitate async task concurrency:
+
+#### Promise.race()
+Settles when ANY of the promises settles.
+Takes an iterable of promises as input, returns a single promise. This promise settles with the eventual state of the FIRST promise that settles, whether it is fulfilled or rejected.
+
+#### Promise.any()
+Fulfills when ANY of the promises fulfills, rejects when ALL of the promises reject.
+Takes an interable of promises, returns a single Promise, which fulfills when any of the input's promises fulfills, with this first fulfillment value. Rejects when ALL of the input's promises reject (including when empty iterable is passed), returning an array of rejection reasons. Otherwise, even if one promise rejects, it will return the first successfully fulfilled promise.
+
+#### Promise.all()
+Fulfills when ALL the promises fulfill, rejects when ANY of the promises reject.
+Takes an array of promises, and returns an array of promises that resolve with the corresponding fulfillment values *in the same order of the input array* - regardless of which promises fulfill first. Rejects when any of the promises reject.
+
+#### Promise.allSettled()
+Fulfills when ALL promises settle.
+Takes an iterable of promises as input, returns a single Promise. This returned Promise fulfills when all of the input's promises settle (including when an empty iterable is passed), with an array of objects that *describe the outcome* of each promise.
+
+    const promise1 = Promise.resolve(3);
+    const promise2 = new Promise((resolve, reject) => setTimeout(reject, 100, 'foo'));
+    const promises = [promise1, promise2];
+
+    Promise.allSettled(promises).
+        then((results) => results.forEach((result) => console.log(result.status)));
+
+    // expected output:
+    // "fulfilled"
+    // "rejected"
+
+### Promise constructor
+Creates a new Promise. Used to wrap functions that do not already support promises.
+
+    const promise1 = new Promise((resolve, reject) => {
+        setTimeout(() => {
+            resolve('foo');
+        }, 300);
+    });
+
+    promise1.then((value) => {
+        console.log(value); // expected output: "foo"
+    });
+
+    console.log(promise1); // expected output: [object Promise]
+
+### .finally()
+Haven't seen this before!
+
+Schedules a callback function to be called when the promise is settled. Like `then` and `catch`, it immediately returns an equivalent Promise object, allowing chaining.
+
+function checkMail() {
+  return new Promise((resolve, reject) => {
+    if (Math.random() > 0.5) {
+      resolve('Mail has arrived');
+    } else {
+      reject(new Error('Failed to arrive'));
+    }
+  });
+}
+
+checkMail()
+  .then((mail) => {
+    console.log(mail);
+  })
+  .catch((err) => {
+    console.error(err);
+  })
+  .finally(() => {
+    console.log('Experiment completed');
+  });
+
+So basically, this code executes when the Promise settles, regardless of whether it fulfilled or rejected. If you want something to happen regardless of result, then use `.finally()`.
 
 ## async
 The `async` function declaration declares an async function where the `await` keyword is permitted within the function body. `async` and `await` enable asynchronous, promise-based behaviour to be written in a cleaner style, so you don't need to explicitly configure promise chains.
@@ -1777,3 +1879,364 @@ Use of `async`/`await` enables the use of ordinary `try`/`catch` blocks around a
 The body of an async function can be thought of as being split by **zero or more** await functions. Top level code up to, and including, the first await expression, is run synchronously. In this way, an async function without an await expression will run synchronously.
 
 If there is an await expression inside the function body, the async function will always complete asynchronously.
+
+### Async, more in depth
+Asynchronous code becomes more difficult to follow when lots of things are going on. 
+
+The two code blocks below do the same thing (get info from server, process it, return a promise).
+
+    function getPersonsInfo(name) {
+        return server.getPeople().then(people => {
+            return people.find(person => { return person.name === name });
+        });
+    }
+And,
+
+    async function getPersonsInfo(name) {
+        const people = await server.getPeople();
+        const person = people.find(person => { return person.name === name });
+        return person;
+    }
+
+To use `await`, you need to precede a function declaration with `async`.
+
+Functions declared with `async` **automatically** returns a promise. Returning an async function is the same as resolving a promise. Throwing an error will reject the promise.
+
+It's important to note that `async` functions are just syntactical sugar for `promises`.
+
+It's valid to use an `async` function anywhere you can use a normal function. You can use the keyword with ANY of the ways a function can be created. See below:
+
+    // Arrow function
+    const yourAsyncFunction = async () => {
+        // do something asynchronously and return a promise
+        return result;
+    }
+
+    // Array method
+    anArray.forEach(async item => {
+        // do something asynchronously for each item in 'anArray'
+        // or, use .map to return an array of promises to use with Promise.all(inArray)
+    })
+
+    // As part of a promise
+    server.getPeople().then(async people => {
+        people.forEach(person => {
+            // do something asynchronously for each person
+        })
+    })
+
+### await
+`await` tells JavaScript to wait for an asynchronous function to finish before continuing the function. It's basically "pause until done". `await` is used to get a value from a function **where you would normally use `.then()`.** Instead of calling `then()` after the asynchronous function, you simply assign a variable to the result using await, e.g. `let varName = await server.getPeople();`. Then you can use the result in your code as if it was synchronous.
+
+### `async` error handling
+Apparently, it's easy. Promises have `catch()`, and since async functions return a promise, you can simply call the function and apply `.catch()` to the end.
+
+    const asyncFunction = async () => {
+        // async code
+    }
+
+    asyncFunction().catch(error => {
+        console.error(error);
+    })
+
+#### Using Try/Catch
+If you want to handle the error *directly* inside the async function...
+
+    async function getPersonsInfo(name) {
+        try {
+            const people = await server.getPeople();
+            const person = people.find(person => { return person.name === name });
+            return person;
+        } catch (error) {
+            // Handle the error however you want
+        }
+    }
+
+**I've been told to do the API lesson first, so I will do that, then come back to this**. I'll return here: https://www.theodinproject.com/lessons/node-path-javascript-async-and-await (bookmark)
+
+## try/catch for error handling
+Usually, when there is an error, the script "dies" (immediately stops) and prints the error to the console. BUT, the syntax `try...catch` allows us to "catch" errors so the script can, instead of dying, do something else.
+
+### Syntax
+
+Two main blocks: `try`, then `catch`
+
+    try {
+        // code
+    } catch (err) {
+        // error handling
+    }
+
+1. First, the code in `try` is executed.
+2. If no errors, then `catch(err)` is ignored.
+3. If an error occurs, then `try` execution is stopped, and control flows to the beginning of `catch(err)`. The `err` variable (which any name can be used for, not just err), will contain an error object with details about what happened.
+
+So, an error inside `try` won't kill the script; we will have a chance to handle the error.
+
+**NOTE**: `try...catch` only works for runtime errors. In other words, it needs to be valid JavaScript. If the issue is syntactically wrong, e.g. missing curly braces, the engine won't be able to understand the "parse-time" error, and the error will be unrecoverable.
+
+**Also**, `try...catch` works **synchronously**. If an exception occurs in scheduled code, like `setTimeout`, then `try...catch` won't catch it. This is because the function itself executes later, when the engine has already left the try...catch construct.
+So, to catch an exception inside a scheduled function, `try...catch` must be inside that function.
+
+    setTimeout(function() {
+        try {
+            noSuchVariable;
+        } catch {
+            alert("error caught here");
+        }
+    }, 1000);
+
+### Error object
+When JavaScript encounters an error, it generates an object containing details about the error. This object is then passed as an argument to `catch`.
+
+For built in errors, the object has 2 main properties:
+- `name`, the error name, e.g. `ReferenceError` for an undefined variable.
+- `message`, textual message about error details.
+- `stack`, the current call stack; a string with information about the sequence of nested calls that led to the error, for debugging purposes.
+
+e.g. `err.message` will say something like "variable is not defined".
+
+#### Optional "catch" binding
+If you don't actually need error details, you can just do `catch { }` without any arguments.
+
+### When to use try/catch
+If you make a fetch request and try to `.json()` it, if the json is malformed, an error will be generated, so the script "dies".
+
+But, dying without any notice is bad UX. So, use try/catch to handle the error.
+
+    let json = "{ bad json }";
+
+    try {
+        let user = JSON.parse(json);
+        alert(user.name);
+    } catch (err) {
+        // the execution will jump here
+        alert( "Our apologies, the data has errors, we'll try to request it one more time." );
+        alert( err.name );
+        alert( err.message );
+    }
+
+Here, `catch` only shows the message, but you can do other things, e.g. send a new network request, suggest an alternative to the user, send info to a logging facility. These are all better than just dying.
+
+### Throwing our own errors
+What if `json` is syntactically correct, but is missing a required `name` property?
+
+    let json = '{ "age": 30 }'; // incomplete data
+
+    try {
+        let user = JSON.parse(json); // <-- no errors
+        alert( user.name ); // no name! runs, but with "undefined"
+    } catch (err) {
+        alert( "doesn't execute" );
+    }
+
+Here, the absence of `name` is an error, for us. So, we can use the `throw` operator.
+
+#### `throw`
+Generates an error. `throw <error object>`, e.g. `throw error` (the variable name is error)
+
+You can technically use anything as an error object, e.g. primitive, string, but it's better to use objects, preferably with `name` and `message` properties (to stay somewhat compatible with built-in errors).
+
+JavaScript has built-in constructors for standard errors: `Error`, `SyntaxError`, `ReferenceError`, `TypeError`, etc. You can use these to create error objects.
+
+Syntax:
+
+    let error = new Error(message);
+    let error = new SyntaxError(message);
+    let error = new ReferenceError(message);
+
+For built-in error objects only, the `name` is the same as the name of the constructor. The `message` property is taken from the argument.
+
+So, in the previous example, we can now throw an error if the user has no `name`.
+
+    let json = '{ "age": 30 }'; // incomplete data
+
+    try {
+        let user = JSON.parse(json); // <-- no errors
+
+        if (!user.name) {
+            throw new SyntaxError("Incomplete data: no name"); // (*)
+        }
+
+        alert( user.name );
+    } catch (err) {
+        alert( "JSON Error: " + err.message ); // JSON Error: Incomplete data: no name
+    }
+
+Now, the `catch` block is a single place for all error handling: both for `JSON.parse` and other cases.
+
+### Rethrowing
+In above example, we use try/catch to handle incorrect data. But, what if *another unexpected error* occurs in `try`? Like a programming error (variable is not defined) or something else. e.g
+    let json = '{ "age": 30 }'; // incomplete data
+
+    try {
+        user = JSON.parse(json); // <-- forgot to put "let" before user!
+        // ...
+    } catch (err) {
+        alert("JSON Error: " + err); // JSON Error: ReferenceError: user is not defined
+        // (no JSON Error actually)
+    }
+
+`catch` shows a "JSON Error", but it actually isn't. This can make debugging more difficult.
+
+For this, we can do "rethrowing". The rule: **Catch should only process errors that it knows, and rethrow all others.**
+
+1. Catch gets all errors.
+2. In the `catch (err) { }` block, analyze object `err`.
+3. If we don't know how to handle it, do `throw err`.
+
+You can usually check the error type using `instanceof` operator:
+
+    try {
+        user = { /*...*/ };
+    } catch (err) {
+        if (err instanceof ReferenceError) {
+            alert('ReferenceError'); // "ReferenceError" for accessing an undefined variable
+        }
+    }
+
+We can also get the error class name from `err.name` property. All native errors have it. Another option is to read `err.constructor.name`.
+
+Below, rethrowing, such that `catch` only handles `SyntaxError`.
+
+    let json = '{ "age": 30 }'; // incomplete data
+    try {
+        let user = JSON.parse(json);
+        if (!user.name) {
+            throw new SyntaxError("Incomplete data: no name");
+        }
+        blabla(); // unexpected error
+
+        alert( user.name );
+    } catch (err) {
+        if (err instanceof SyntaxError) {
+            alert( "JSON Error: " + err.message );
+        } else {
+            throw err; // rethrow (*)
+        }
+    }
+Note that on line `(*)`, this error will "fall out" of the try/catch block and can either be caught by an outer try/catch (if it exists) or it will kill the script.
+
+### try...catch...finally
+As with promises, try/catch blocks also have an optional extra code clause, `finally { }`, which also runs in all cases (regardless of errors occurring).
+
+    try {
+        // code
+    } catch (err) {
+        // handle err
+    } finally {
+        // execute always
+    }
+
+**NOTE**: `finally` works for *any* exit from try/catch, including an explicit `return`.
+
+#### try...finally (no catch)
+
+This is also useful - when we don't want to handle errors, but we want to be sure that processes we started are finalized.
+
+    function func() {
+        // start doing something that needs completion (like measurements)
+        try {
+            // ...
+        } finally {
+            // complete that thing even if all dies
+        }
+    }
+
+**NOTE**: Don't use try/catch to exit for loops. In JS, it seems that you need to have an error to access `catch`, and doing so just to exit a loop is bad practice.
+
+## JSON
+**JavaScript Object Notation**, a standardized format for structuring data, heavily based on the syntax for JS Objects. It's basically the universal format for transmitting data on the web, so it's often encountered working with external servers or APIs.
+
+JSON is purely a string with a specified data format. Contains only properties, no methods. **Double quotes around strings and property names are required**. Single quotes are ONLY valid when surrounding the entire JSON string. A single misplaced comma/colon can cause a JSON file to throw errors, so be sure to validate any data you're using. JSON are not necessarily objects/arrays. A single string or number is valid JSON.
+
+Needs to be converted to a native JS object to access data. JS provides a JSON object with built-in methods for converting things to/from JSON. e.g. arrays can be converted to/from JSON.
+
+### Converting between objects and text
+Sometimes you receive a raw JSON string that needs to be converted to an object, instead of a JSON that is nicely formatted and ready to be used.
+
+And, when you want to send a JS object across the network, we need to convert it to JSON before sending. JavaScript's JSON object has two built in methods for this:
+
+- `parse()` - accepts a JSON string as a parameter, **returns** the corresponding JavaScript object.
+- `stringify()` - accepts an object as a parameter, and **returns** the equivalent JSON string.
+
+### Mis-formatted JSON
+A common cause of errors is misformatted JSON data, so try using this [JSON formatter website](https://jsonformatter.curiousconcept.com/) to search for formatting errors if you have any. [JSONLint](https://jsonlint.com/) is another option.
+
+## Asynchronous code
+Some things take a while to complete, e.g. fetching data from a server. JS includes support for asynchronous functions: functions that can happen in the background while the rest of your code executes.
+
+Instead of the code executing top to bottom (like reading a book), async programs may execute different functions at different times based on order/speed that earlier functions happen.
+
+Determining if a function is asynchronous or not depends on context. **Synchronous** code essentially can be expected to execute sequentially from top to bottom. Usually, methods like accessing things in memory or doing work on the CPU are synchronous. **Asynchronous**  methods generally involve talking to hard drives or networks. Because, sometimes, I/O is really slow - talking to a hard drive is about 100000 times slower than talking to memory, e.g. RAM.
+
+When you run a program, all the functions are defined immediately, but *they don't all execute immediately*.
+
+The key to callbacks is understanding that they are used when you don't know **when** some async operation will complete, but you know **where** it will complete (the last line of the async function). First you split up the code into functions, then use callbacks to declare if one function depends on another one finishing.
+
+**NOTE**: functions are just objects that can be stored in variables and passed around with different names.
+
+### Callbacks
+**A function passed into another function as an argument**, which is then invoked within to complete a routine/action.
+
+Using callbacks can get wild, especially if you need to chain several of them in a specific order. Try to avoid callback hell.
+
+## Event Loop
+
+### Stack
+Data structure that records where we are, basically. If we step into a function, we put something on top the stack. If we return from a function, we pop it off the top of the stack. (always LIFO)
+
+**Blowing the stack**: doing something recursive, e.g.
+
+    function foo() {
+        return foo();
+    }
+    foo();
+
+Will stack the stack to infinity, so the browser will generally kill things (the page hangs).
+
+### Blocking
+Basically, code that is slow and on the stack is "blocking" things. In a single threaded programming language, you do kind of have to wait until things are "done" before moving on. However, in JS, you can use asynchronous callbacks...
+
+### Concurrency and the Event Loop
+JS can only do one thing at a time. BUT, the browser is more than just the runtime. So, the JS runtime can only do one thing at a time, but the browser has other tools, web APIs, which are effectively threads (you can't access them, only make calls to them). 
+
+So, when you call a `setTimeout(callback)`, it's an API provided by the browser, so it gets added to the stack, then the browser kicks off a timer for you. The initial `setTimeout` call itself is now done, so it gets popped off the stack. Then the next piece of code gets put on the stack etc.
+
+During this, the web API is counting down the timer, and when it's done, the `callback` is added to the **task queue**. 
+
+Now, we get to the event loop. It has one job: to look at the stack and task queue. If the stack is empty, it takes the first thing from the task queue and pushes it onto the stack (which runs it). So, when the stack is next empty, the `callback` gets put on the stack. If it only has `console.log('hi')` inside, then that is put on top of the stack, then executed, then popped off the stack, then the `callback` frame is also popped off the stack.
+
+#### setTimeout(0)
+
+Hence, if you're trying to defer something until the stack is clear, you can wrap it in a `setTimeout(callback, 0)`. Even though the delay is 0, the fact that it has to be processed by the web API means that it will be added to the task queue. Your `main()` will continue to run, and only when the stack is empty, the callback is executed.
+
+Asynchronous callbacks aren't the same as synchronous callbacks.
+
+e.g. with `Array.forEach(callback)`, it IS executing a callback, but it's within the current stack, so it's not a given that it's asynchronous.
+
+You CAN make a forEach asynchronous, by putting asynchronous code within the callback.
+
+Each function call will sit and block the stack until it's done, by the way. The stack is filled on a per-function basis, not a per-document basis.
+
+So, if you are doing something to each item in an array that could take a while, you can:
+
+    function asyncForEach(array, cb) {
+        array.forEach(function() {
+            setTimeout(cb, 0);
+        })
+    }
+
+##### About the Render Queue
+Ideally the browser would like to repaint the screen at 60fps. But it can't do a render if there's code on the stack. Every 16ms, the Render Queue queues a render, then it waits until the stack is clear before it can actually do the render. However, it IS given higher priority than the task queue.
+
+If you're doing something that is slow AND synchronous, the render will be blocked, so the user can't actually interact with the webpage (it's hanging). Because, the stack doesn't empty until the function is done.
+
+BUT, by queueing something slow (making it asynchronous), you are *giving the render queue the chance to render in between each execution*. Instead of waiting for 20 slow synchronous things to happen, the render queue can execute a render between each of these 20 things, which feels much better.
+
+Basically, don't put crappy slow code on the stack, because the browser can't do what it needs to do, which is create a fluid user experience.
+
+An example of this concept is scroll handlers. These trigger a LOT, like every frame. 
+
+#### Debouncing
+Basic explanation: we can queue up all these events, but let's only do the slow work every few seconds or until the user stops scrolling.
