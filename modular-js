@@ -1,0 +1,825 @@
+# Modular JavaScript
+Notes taken from this [YouTube series](https://www.youtube.com/playlist?list=PLoYCgNOIyGABs-wDaaxChu82q_xQgUb4f)
+
+I've separated these from my regular JS notes because I think they are very important concepts and should be easily accessible in their own document.
+
+Apparently modular JS is the foundation of working with frameworks.
+
+## Ground Rules
+- Self contained module 
+    - Everything to do with a module will be contained within it.
+    - No global variables! Avoid naming collisions. Apparently having global variables will also slow down larger JS applications.
+    - If a module manages more than one thing, it should be split up into its own module.
+- Separation of concerns - you need to be able to glance at the code and understand what it's doing, and you can't do that if you've jumbled all your actions up in one spot.
+- DRY: Don't Repeat Yourself.
+- Efficient DOM usage
+    - e.g. you really only need one `document.querySelector()` per module. It's slow to keep searching the DOM every time you do a click.
+- No memory leaks
+    - All events need to be able to be *unbound*. In a single-page app, you will be having elements go away and come back, so you'll need associated event listeners to be able to do that too. As long as there's an event bound to an unused module, even if the module disappears, it will still remain within memory because there's still something bound to it.
+    - e.g. in Gmail, if you have even one click event listener, it will continue to pile up on itself while you go from email -> email list etc, and will eventually severely slow down your browser/PC. This is a memory leak.
+
+## Object Literal Pattern
+Pretty common design pattern.
+
+    let myModule = {
+        name: "Nathan",
+        age: 31,
+        sayName: function() {
+            alert(this.name);
+        }
+        setName: function(newName) {
+            this.name = newName;
+        }
+    };
+
+    myModule.sayName();
+
+The methods that you expose to other modules (that allow other modules to do actions) are called your **API**. Currently our API has 2 methods, in this case `sayName` and `setName`.
+
+With the Object Literal pattern, everything is accessible, so you can do `myModule.name = "Will"` to change the name. This is NOT how you should be interacting with modules; you should only be doing this with methods that are provided for you. The *Revealing Modules* Pattern will fix this issue for you.
+
+## Moustache Template
+Is this a jquery thing?
+
+## Getting rid of global variables (with Object Literal)
+You can wrap code in an IIFE. Although, this doesn't really solve the issue of spaghetti code.
+
+Another option is creating an object literal wrapped in an IIFE. This video is refactoring jquery code, which I don't know, but I'm hoping the principles are transferrable. But, all JQuery objects are notated with `$`.
+
+    (function() {
+
+        let people = {
+            people: [],
+            init: function() {
+                this.cacheDom();
+                this.render();
+            },
+            cacheDom: function() {
+                this.$el = $('#peopleModule');
+                this.$button = this.$el.find('button');
+                this.$input = this.$el.find('input');
+                this.$ul = this.$el.find('ul');
+                this.template = this.$el.find('people-template').html(),
+            },
+            render: function() {
+                
+                let data = {
+                    people: this.people,
+                };
+                this.$ul.html(Mustache.render(this.template, data));
+            }
+        };
+
+        people.init();
+    })
+
+This is obviously jquery  but in `cacheDom` the only DOM searching that happens is the first line. Then all other elements, which are children of this module, are found via this reference.
+
+`init` is the method that for executing on startup, so it's called at the bottom.
+
+The `render` method is a common name for "let's take the current state of this module and translate it to the DOM.
+
+> By the way, `Mustache` (not vanilla JS) takes values and spits them into a string. So `Mustache.render("hi {{name}}", {name: 'Will'});` will output "hi will".
+
+So, everything here talks to the module. The only thing that touches the DOM is the `render` method. This is a much cleaner approach.
+
+Now, let's add a `bindEvents` method.
+
+    (function() {
+
+        let people = {
+            people: [],
+            init: function() {
+                this.cacheDom();
+                this.bindEvents();
+                this.render();
+            },
+            cacheDom: function() {
+                this.$el = $('#peopleModule');
+                this.$button = this.$el.find('button');
+                this.$input = this.$el.find('input');
+                this.$ul = this.$el.find('ul');
+                this.template = this.$el.find('people-template').html(),
+            },
+            bindEvents: function() {
+                this.$button.on('click', this.addPerson.bind(this));
+            },
+            render: function() {
+                let data = {
+                    people: this.people,
+                };
+                this.$ul.html(Mustache.render(this.template, data));
+            },
+            addPerson: function() {
+                this.people.push(this.$input.val());
+                this.render();
+                // Once we render, clear the input field
+                this.$input.val('');
+            }
+        };
+
+        people.init();
+    })
+
+`bindEvents` is for one thing only: binding events. As seen here, we do NOT want to create a callback within the event listener, so we've created `addPerson` separately.
+
+**NOTE**: When binding event listeners, remember that the *context of `this` changes*. So, you can't just bind `addPerson` by itself.
+
+Because we don't want the value of `this` in `addPerson` to ever change, we will have to bind `this` in `bindEvents`:
+    bindEvents: function() {
+        this.$button.on('click', this.addPerson.bind(this));
+    },
+
+Now we can add delete functionality.
+
+    let people = {
+        people: [],
+        init: function() {
+            this.cacheDom();
+            this.bindEvents();
+            this.render();
+        },
+        cacheDom: function() {
+            this.$el = $('#peopleModule');
+            this.$button = this.$el.find('button');
+            this.$input = this.$el.find('input');
+            this.$ul = this.$el.find('ul');
+            this.template = this.$el.find('people-template').html(),
+        },
+        bindEvents: function() {
+            this.$button.on('click', this.addPerson.bind(this));
+            this.$ul.delegate('i.del', 'click', this.deletePerson.bind(this));
+        },
+        render: function() {
+            let data = {
+                people: this.people,
+            };
+            this.$ul.html(Mustache.render(this.template, data));
+        },
+        addPerson: function() {
+            this.people.push(this.$input.val());
+            this.render();
+            // Once we render, clear the input field
+            this.$input.val('');
+        },
+        deletePerson: function(event) {
+            let $remove = $(event.target).closest('li');
+            let i = this.$ul.find('li').index($remove);
+
+            this.people.splice(i, 1);
+            this.render();
+        }
+    };
+
+    people.init();
+
+We've added `this.$ul.delegate('i.del', 'click');` to `bindEvents`. Note that `i.del` is a reference to the HTML `<i class="del">X</i>` in the video's example, basically a delete button within each name in the list.
+
+We've also added `deletePerson` to the button, again remembering to bind `this`.
+
+ALSO, at the end of the video, he named the example of another part of this application also wanting to add a person, and removed the IIFE closure.
+
+## Revealing Module Pattern
+As previously mentioned:
+    let myModule = {
+        name: "Nathan",
+        age: 31,
+        sayName: function() {
+            alert(this.name);
+        }
+        setName: function(newName) {
+            this.name = newName;
+        }
+    };
+
+    myModule.sayName();
+
+This Object Literal example is not always the best pattern to use, as people can just do `myModule.name = "Will"`, whether or not they understand the API. It's risky.
+
+SO, the *Revealing Module* design pattern solves this.
+
+Re: IIFEs, wrapping a function in `()` will make JS evaluate it, so it can be executed as a function straight away.
+
+**NOTE**: Okay I think because this video is pre-ES6 (he's only using `var`), he's using an IIFE in his Revealing Module to create a local scope. However, I don't think I actually need to do this?
+
+By the way, if you have
+
+    let people = (function() {
+        let name = "Will";
+
+        function sayName() {
+            alert(name);
+        }
+
+        return {
+            sayName
+        };
+    })();
+
+And you try to do `people.name = "Nathan"`, you won't change the output of `sayName`. You'll actually be doing this:
+
+    let people = (function() {
+        let name = "Will";
+
+        function sayName() {
+            alert(name);
+        }
+
+        return {
+            sayName,
+            name: "Nathan"
+        };
+    })();
+
+So this is the **Revealing Modules** pattern. Now let's look at the previous example, rewritten in this pattern:
+
+    let people = (function() {
+        let people: [];
+
+        // cache DOM
+        let $el = $('#peopleModule');
+        let $button = $el.find('button');
+        let $input = $el.find('input');
+        let $ul = $el.find('ul');
+        let template = $el.find('people-template').html(),
+        
+        // bind events
+        $button.on('click', addPerson);
+        $ul.delegate('i.del', 'click', deletePerson);
+
+        _render();
+
+        function _render() {
+            $ul.html(Mustache._render(template, {people: people}));
+        }
+
+        function addPerson(value) {
+            let name = (typeof value === "string") ? value : $input.val()
+            people.push(name);
+            _render();
+            // Once we render, clear the input field
+            $input.val('');
+        }
+
+        function deletePerson(event) {
+            let i;
+            if (typeof event === "number") {
+                i = event;
+            } else {
+                let $remove = $(event.target).closest('li');
+                i = $ul.find('li').index($remove);
+            }
+            people.splice(i, 1);
+            _render();
+        }
+
+        return {
+            addPerson,
+            deletePerson
+        };
+    })();
+
+    people.init();
+
+See how there's no `init` method, because the IIFE automatically executes anything we want it to do, so we don't need it.
+
+Also, to allow for the fact that `addPerson` and `deletePerson` can be called OUTSIDE of the module buttons, some refactoring has occured.
+
+In `addPerson` we've added the ternary operation `let name = (typeof value === "string") ? value : $input.val()`. This is because `value` is actually the name we've assigned to `event` (it's an event listener callback). `value` will be a JS object for the `click` event if it's fired from the button click. So, if `value` is a string, we will use that, and otherwise we will discard it and take the value from the input field.
+
+In `deletePerson`, either the index of which name to remove comes from the event listener, or it is obtained via the original method (which is jquery).
+
+So we can now use the button to add/delete people, AND ALSO call `people.addPeople` and `people.deletePerson(i)`.
+
+We've also indicated that `render` is private by adding a `_` prefix.
+
+## PubSub Design Pattern
+PubSub = "publish subscribe"
+
+Continuing from the previous example: the problem with Revealing Module is that it scales poorly.
+
+    let people = (function() {
+        let people: [];
+
+        // cache DOM
+        let $el = $('#peopleModule');
+        let $button = $el.find('button');
+        let $input = $el.find('input');
+        let $ul = $el.find('ul');
+        let template = $el.find('people-template').html(),
+        
+        // bind events
+        $button.on('click', addPerson);
+        $ul.delegate('i.del', 'click', deletePerson);
+
+        _render();
+
+        function _render() {
+            $ul.html(Mustache._render(template, {people: people}));
+            stats.setPeople(people.length);
+            header.updateCount(people.length);
+            footer.change(people.length);
+        }
+
+        function addPerson(value) {
+            let name = (typeof value === "string") ? value : $input.val()
+            people.push(name);
+            _render();
+            // Once we render, clear the input field
+            $input.val('');
+        }
+
+        function deletePerson(event) {
+            let i;
+            if (typeof event === "number") {
+                i = event;
+            } else {
+                let $remove = $(event.target).closest('li');
+                i = $ul.find('li').index($remove);
+            }
+            people.splice(i, 1);
+            _render();
+        }
+
+        return {
+            addPerson,
+            deletePerson
+        };
+    })();
+
+    people.init();
+
+In `render`, as an example, we've added multiple dependent modules to show that this module needs to be aware of every module that depends on it, as well as their APIs. Now you have to manage a huge list of stuff in `render`. This is called **coupling**: as in, this module is tightly coupled with all these other modules, which is bad for larger applications.
+
+Using the **PubSub** (also called **Mediator**) design pattern will clean this issue up for us.
+
+The basic concept is that a module will ONLY send a "changed" event to the PubSub, and dependent modules will be listening to the PubSub for the changed event, and they will all update. So now in `render` we only need:
+
+    let people = (function() {
+        let people: [];
+
+        // cache DOM
+        let $el = $('#peopleModule');
+        let $button = $el.find('button');
+        let $input = $el.find('input');
+        let $ul = $el.find('ul');
+        let template = $el.find('people-template').html(),
+        
+        // bind events
+        $button.on('click', addPerson);
+        $ul.delegate('i.del', 'click', deletePerson);
+
+        _render();
+
+        function _render() {
+            $ul.html(Mustache._render(template, {people: people}));
+            pubsub.publish("peopleChanged", people)
+        }
+
+        function addPerson(value) {
+            let name = (typeof value === "string") ? value : $input.val()
+            people.push(name);
+            _render();
+            // Once we render, clear the input field
+            $input.val('');
+        }
+
+        function deletePerson(event) {
+            let i;
+            if (typeof event === "number") {
+                i = event;
+            } else {
+                let $remove = $(event.target).closest('li');
+                i = $ul.find('li').index($remove);
+            }
+            people.splice(i, 1);
+            _render();
+        }
+
+        return {
+            addPerson,
+            deletePerson
+        };
+    })();
+
+    people.init();
+
+Our original `stats` module:
+
+    let stats = (function() {
+        //whatever code
+        let $stats = $('#statsModule');
+        let template = $('#stats-template').html();
+
+        _render();
+
+        function _render() {
+            $stats.html('Mustache.render(template, {people: people})');
+        }
+
+        function setPeople(newPeople) {
+            people = newPeople;
+            _render();
+        }
+
+        function destroy() {
+            $stats.remove();
+            events.off('peopleChanged', setPeople);
+        }
+
+        return {
+            setPeople
+        };
+    })
+
+And the pubsub-inclusive module:
+
+    let stats = (function() {
+        //whatever code
+        let $stats = $('#statsModule');
+        let template = $('#stats-template').html();
+
+        pubsub.subscribe('peopleChanged', setPeople);
+
+        _render();
+
+        function _render() {
+            $stats.html('Mustache.render(template, {people: people})');
+        }
+
+        function setPeople(newPeople) {
+            people = newPeople;
+            _render();
+        }
+
+        function destroy() {
+            $stats.remove();
+            events.off('peopleChanged', setPeople);
+        }
+    })
+
+We've removed the `return` (removed the API?) as it's not needed.
+
+And here is a bare-minimum **pubsub** pattern:
+
+    let events = {
+        events: {},
+        on: function (eventName, fn) {
+            this.events[eventName] = this.events[EventName] || []
+            this.events[eventName].push(fn);
+        },
+        off: function(eventName, fn) {
+            if (this.events[eventName]) {
+                for (var i = 0; i < this.events[eventName].length; i++) {
+                    if (this.events[eventName][i] === fn) {
+                        this.events[eventName].splice(i, 1);
+                        break;
+                    }
+                };
+            }
+        },
+        emit: function(eventName, data) {
+            if (this.events[eventName]) {
+                this.events[eventName].forEach(function(fn) {
+                    fn(data);
+                })
+            }
+        }
+    }
+
+Generally with pubsubs you want:
+    pubsub
+    pubsub.subscribe
+    pubsub.unsubscribe
+    pubsub.publish
+
+But this video guy says he prefers to use "events" because it ties in more with the DOM:
+    events
+    events.on('peopleChanged', someHandler);
+    events.emit('peopleChanged', 3)
+
+So we have here an events object (currently empty bc there are no events created by default). If a module subcribes (using `events.on('peopleChanged', someHandler);`), then we will add `peopleChanged` to `events`, and store the callback.
+
+    // In some random module
+    events.on('peopleChanged', someHandler);
+
+    // In some other module
+    events.on('peopleChanged', someOtherHandler);
+
+    let events = {
+        events: {
+            peopleChanged: [someHandler, someOtherHandler]
+        },
+        on: function (eventName, fn) {
+            this.events[eventName] = this.events[EventName] || []
+            this.events[eventName].push(fn);
+        },
+        off: function(eventName, fn) {
+            if (this.events[eventName]) {
+                for (var i = 0; i < this.events[eventName].length; i++) {
+                    if (this.events[eventName][i] === fn) {
+                        this.events[eventName].splice(i, 1);
+                        break;
+                    }
+                };
+            }
+        },
+        emit: function(eventName, data) {
+            if (this.events[eventName]) {
+                this.events[eventName].forEach(function(fn) {
+                    fn(data);
+                })
+            }
+        }
+    }
+
+If a module emits (calls emit method), and the event already exists, then we will loop through this `peopleChanged` array with the data that it gives us:
+
+    // In some random module
+    events.on('peopleChanged', someHandler);
+
+    // In some other module
+    events.on('peopleChanged', someOtherHandler);
+
+    // If a module emits
+    events.emit('peopleChanged', 3)
+
+    let events = {
+        events: {
+            peopleChanged: [someHandler(3), someOtherHandler(3)]
+        },
+        on: function (eventName, fn) {
+            this.events[eventName] = this.events[EventName] || []
+            this.events[eventName].push(fn);
+        },
+        off: function(eventName, fn) {
+            if (this.events[eventName]) {
+                for (var i = 0; i < this.events[eventName].length; i++) {
+                    if (this.events[eventName][i] === fn) {
+                        this.events[eventName].splice(i, 1);
+                        break;
+                    }
+                };
+            }
+        },
+        emit: function(eventName, data) {
+            if (this.events[eventName]) {
+                this.events[eventName].forEach(function(fn) {
+                    fn(data);
+                })
+            }
+        }
+    }
+
+Here's a link to the video's copy-pastable [PubSub](https://gist.github.com/learncodeacademy/777349747d8382bfb722). The comments have lots of different examples/expansions.
+
+This `events` object can be copy-pasted into projects where a pubsub is needed. There are also many pubsub libraries out there with features like subscribing to a namespaced events.
+
+## PubSub Implementation
+Now that we have this pubsub, let's incorporate it into our `people` module.
+
+let people = (function() {
+        let people: [];
+
+        // cache DOM
+        let $el = $('#peopleModule');
+        let $button = $el.find('button');
+        let $input = $el.find('input');
+        let $ul = $el.find('ul');
+        let template = $el.find('people-template').html(),
+        
+        // bind events
+        $button.on('click', addPerson);
+        $ul.delegate('i.del', 'click', deletePerson);
+
+        _render();
+
+        function _render() {
+            $ul.html(Mustache._render(template, {people: people}));
+            events.emit('peopleChanged', people.length);
+        }
+
+        function addPerson(value) {
+            let name = (typeof value === "string") ? value : $input.val()
+            people.push(name);
+            _render();
+            // Once we render, clear the input field
+            $input.val('');
+        }
+
+        function deletePerson(event) {
+            let i;
+            if (typeof event === "number") {
+                i = event;
+            } else {
+                let $remove = $(event.target).closest('li');
+                i = $ul.find('li').index($remove);
+            }
+            people.splice(i, 1);
+            _render();
+        }
+
+        return {
+            addPerson,
+            deletePerson
+        };
+    })();
+
+    people.init();
+
+Within `render`, we've added `events.emit('peopleChanged', people.length);`.
+
+Going back to the `stats` module,
+
+    let stats = (function() {
+        let people = 0;
+
+        // cache DOM
+        let $stats = $('#statsModule');
+        let template = $('#stats-template').html();
+
+        // bind events
+        events.on('peopleChanged', setPeople);
+
+        render();
+
+        function render() {
+            $stats.html('Mustache.render(template, {people: people})');
+        }
+
+        function setPeople(newPeople) {
+            people = newPeople;
+            render();
+        }
+
+        function destroy() {
+            // I assume this removes this module from the page
+            $stats.remove();
+            // This unsubscribes from events
+            events.off('peopleChanged', setPeople);
+        }
+    })();
+
+What we've done: gotten rid of the API (if there's a `return`) and removed any `_` prefixes because there's no API so no need for private indication, added a subscription to `events`, `events.on('peopleChanged', setPeople);`
+
+Note: `destroy` can be added and exposed if you need to remove the module from the page.
+
+So now, `people` and `stats` are both unreliant on each other to update.
+
+## Classical Inheritance & Object Oriented Programming and JS
+2 common types of inheritance: classical and prototypal. They are actually slightly different
+
+### Classical
+By the way, if you're writing a constructor, capitalise the first letter.
+
+    let Person = function(name) {
+        this.name = name;
+    };
+
+    let john = new Person("John");
+    let bobby = new Person("Bobby");
+
+When we created `Person`, we actually also did `Person.prototype = {};`. So now we can extend this object.
+
+    let Person = function(name) {
+        this.name = name;
+    };
+
+    Person.prototype.sayName = function() {
+        console.log("Hi my name is " + this.name);
+    }
+
+    // This is 'instantiation'
+    let john = new Person("John");
+    let bobby = new Person("Bobby");
+
+With `Person.prototype` you can add new functionality.
+
+So this is an example of instantiation, creating new instances. What if we want to create a certain *type* of person? e.g. There are people on Facebook, but there are also friends.
+
+    // Inheritance function from NodeJS, you can copy/paste this
+    function inherits(ctor, superCtor) {
+        ctor.super_ = superCtor;
+        ctor.prototype = Object.create(superCtor.prototype, {
+            constructor: {
+                value: ctor,
+                enumberable: false,
+                writable, true,
+                configurable: true
+            }
+        });
+    };
+    
+    let Person = function(name) {
+        this.name = name;
+    };
+
+    Person.prototype.sayName = function() {
+        console.log("Hi my name is " + this.name);
+    }
+
+    let Musician = function(name, instrument) {
+        // This will run the Person constructor on Friend
+        // The code here is an alt version of Person.call(this, name);
+        Musician.super_.call(this, name);
+        this.instrument = instrument;
+    }
+
+    inherits(Musician, Person);
+
+    Musician.prototype.getInstrument = function() {
+        console.log(this.instrument);
+    }
+
+    Musician.prototype.sayName = function() {
+        // Person.sayName will never be accessed as long as Musician.sayName exists
+        // So you can override the original method for Musician only
+    }
+
+    let julia = new Musician("Julia", "trombone");
+
+    julia.sayName(); // Julia
+    julia.getInstrument(); // trombone
+
+You can also override existing methods by accessing the prototype.
+
+### Prototypal
+The second pattern for instantiation and inheritance of modules.
+
+Prototypal inheritance is different from classical inheritance. You create objects, and then use `Object.create(prototype)` to set prototypes.
+
+    let human = {
+        species: "human",
+        saySpecies: function() {
+            console.log(this.species);
+        },
+        sayName: function() {
+            console.log(this.name);
+        }
+    };
+
+    let musician = Object.create(human);
+
+    musician.playInstrument = function() {
+        console.log("plays " + this.instrument);
+    }
+
+    let will = Object.create(musician);
+    will.name = "Will";
+    will.instrument = "Drums";
+
+So `musician` will have all the methods/properties that `human` does, as well as `playInstrument`.
+
+If you don't like having to create an object like this:
+    let will = Object.create(musician);
+    will.name = "Will";
+    will.instrument = "Drums";
+
+You can add a `create` method to the prototype.
+
+    let human = {
+        species: "human",
+        create: function(name) {
+            let instance = Object.create(this);
+            instance.name = name;
+            return instance;
+        },
+        saySpecies: function() {
+            console.log(this.species);
+        },
+        sayName: function() {
+            console.log(this.name);
+        }
+    };
+
+    let will = human.create("Will");
+
+You can upgrade the above `create` method to set multiple properties instead of just `name`.
+
+    let human = {
+        species: "human",
+        create: function(values) {
+            let instance = Object.create(this);
+            Object.keys(values).forEach(function(key) {
+                instance[key] = values[key];
+            })
+            return instance;
+        },
+        saySpecies: function() {
+            console.log(this.species);
+        },
+        sayName: function() {
+            console.log(this.name);
+        }
+    };
+
+    let musician = human.create({
+        species: "musician",
+        playInstrument: function() {
+            console.log("plays " + this.instrument);
+        }
+    })
+
+One caveat: `Object.create` is IE8 and above only.
+
+Although, having written all these notes, I did just also take notes on a video saying that I should try to only use composition (what object does) and not inheritance (what object is).

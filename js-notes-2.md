@@ -2240,3 +2240,693 @@ An example of this concept is scroll handlers. These trigger a LOT, like every f
 
 #### Debouncing
 Basic explanation: we can queue up all these events, but let's only do the slow work every few seconds or until the user stops scrolling.
+
+## 3 Different Kinds of Prototypal Inheritance: ES6+ Edition
+From [this](https://medium.com/javascript-scene/3-different-kinds-of-prototypal-inheritance-es6-edition-32d777fa16c9)
+
+### Design Patterns, written by "The Gang of Four
+The first principle: **You should program to an interface, not to an implementation.**
+Second principle: **Favour object composition over class inheritance.**
+
+### Factory function using Object.create()
+In JS, any function can create new objects. When it's not a *constructor function*, it's called a *factory function*.
+
+### Composition over Inheritance
+Inheritance: designing your types around what they ARE
+
+Composition: designing your types around what they DO. e.g.
+
+    dog              = pooper + barker
+    cat              = pooper + meower
+    cleaningRobot    = driver + cleaner 
+    murderRobot      = driver + killer
+    murderRobotDog   = driver + killer + barker
+
+From the above (from the video), let's put these into functions:
+
+    const barker = (state) => ({
+        bark: () => console.log('Woof, I am ' + state.name)
+    })
+
+    const driver = (state) => ({
+        drive: () => state.position = state.position + state.speed
+    })
+
+    barker({name: 'karo'}).bark()
+
+Here's the actual murderRobotDog factory function:
+
+    const murderRobotDog = (name) => {
+        let state = {
+            name,
+            speed: 100,
+            position: 0
+        }
+        return Object.assign(
+            {},
+            barker(state),
+            driver(state),
+            killer(state)
+        )
+    }
+
+`Object.assign` takes an object, and assigns the properties from the other objects into this object. So it creates barker, driver, killer, and merges them all into this first object, then returns the new object.
+
+**When to use inheritance vs composition?** Most people say to favour composition. Video maker says in his opinion, **you should not need to use inheritance at all**. The problem with inheritance is that it encourages you to predict the future, and lock yourself into a taxonomy of objects early on in a project, which is then hard to get out of later.
+
+However, composition is easy to do, and flexible, so why not.
+
+### What about `class`?
+The base JS object system is very easy and flexible, but because many people from other languages struggled with understanding it without any familiar words, they kept trying to emulate the class paradigm in JS. So many libraries and also vanilla JS added a pseudo-class system. However, it is inferior to composition, so you should just make use of the native prototypal alternatives.
+
+## The Module Pattern (lite)
+**NOTE**: ES6 introduced *modules*. Modules are syntax for importing/exporting code between different JS files. They are very powerful and will be covered later. They are also NOT what this section is about.
+
+Modules are similar to factory functions, except instead of creating a factory that can be reused over and over to create multiple objects, the module pattern wraps the factory in an IIFE (Immediately Invoked Function Expression).
+
+### IIFE
+The basic concept:
+1. Write a function
+2. Wrap the function in `()`
+3. Add a `()` onto the end of it.
+
+Pronounced 'iffy' apparently. 
+
+Function declaration:
+    function myFunction() { }
+
+Function expression (assigning a function to a variable or property):
+    let myFunction = function () { }
+
+    let myObj = {
+        myFunction: function () { }
+    }
+
+A function created in the context of an expression is also an expression.
+
+    ( function () { } )
+
+I haven't seen this before but apparently anything after the `!` not operator is part of an expression too.
+
+    !function () { /* logic here */ };
+
+The key thing about expressions is that they return values. In both cases above, the return value is the expression of the function. This means, if you want to invoke the function expression immediately, just put `()` on the end.
+
+    (function () {
+        // code
+    })();
+
+#### WHY use IIFEs?
+The primary reason is data privacy. Due to the way JS does scope, anything within a closure is essentially "private".
+
+You COULD just explicitly name and invoke a function to achieve the same thing. HOWEVER, there are downsides:
+- Pollutes the global namespace
+- The intentions of this code are not self-documenting as an IIFE
+- Because it is named and ISN'T self-documenting, it might accidentally be invoked more than once.
+
+You can pass arguments into the IIFE as well.
+
+    let foo = "foo";
+
+    (function (innerFoo) {
+        console.log(innerFoo); // Outputs "foo"
+    })(foo);
+
+### Back to module patterns
+Commonly used for singleton style objects where only one instance exists. Good for testing/TDD and services.
+
+Create an anonymous closure (IIFE).
+    (function() {
+        'use strict' // Apparently it's good practice to use strict mode?
+        // put your code here
+    })();
+
+Export your module (assign it to a variable you can use to call the methods):
+    let myModule = (function() {
+        'use strict';
+        // etc
+    })();
+
+Now, create a public method for your module to call. To expose this method outside the closure, return an Object with the methods defined.
+    let myModule = (function() {
+        'use strict';
+
+        let _privateProperty = 'Hello World!';
+        
+        function _privateMethod: function() {
+            console.log(_privateProperty);
+        }
+
+        return {
+            publicMethod: function() {
+                _privateMethod();
+            }
+        };
+    })
+
+    myModule.publicMethod(); // Hello World
+
+Additionally, you can take advantage of the closure to create private properties and methods, and only export the ones you want. `_` is a common prefix to indicate that something is "private" in JS.
+
+### Revealing Module Pattern
+One of the most popular ways to create modules. Using the `return` statement, we can return an object literal that 'reveals' only the methods/properties we want to be public.
+
+    let myModule = (function() {
+        'use strict';
+
+        var _privateProperty = 'Hello World';
+
+        var publicProperty = 'I am a public property';
+
+        function _privateMethod() {
+            console.log(_privateProperty);
+        }
+
+        function publicMethod() {
+            _privateMethod();
+        }
+
+        return {
+            publicMethod,
+            publicProperty
+        };
+    })();
+
+    myModule.publicMethod(); // outputs 'Hello World'
+    console.log(myModule.publicProperty); // outputs 'I am a public property'
+    console.log(myModule._privateProperty); // is undefined protected by the module closure
+    myModule._privateMethod(); // is TypeError protected by the module closure
+
+One of the advantages of this pattern are that you can look at the bottom to quickly see what's available for public use.
+
+Write a factory method that returns an object:
+
+    const Pet = (name, age) => {
+        function identify() {
+            console.log('Hello, ' + name);
+        }
+        return {
+            name,
+            age,
+            identify
+        }
+    }
+
+    const Dog = (name, age) => {
+        const {identify} = Pet(name);
+        const play = () => console.log(name + ' is playing.');
+        return {identify, play};
+    }
+
+    const bobby = Dog('Bobby', 13);
+
+    bobby.identify();
+    bobby.play();
+
+## Classes
+JS classes are *syntactic sugar* for the existing prototype-based constructors. Many people say that they obscure what's really going on with objects, so they're dangerous to use. However, frameworks use them sooooooooooo
+
+### Getters and Setters
+2 kinds of object properties:
+- Data properties
+- Accessor properties: functions that execute on getting and setting a value, but they look like regular properties to an external code.
+
+#### Accessor properties
+In an object literal, they are denoted by `get` and `set`:
+
+    let obj =  {
+        get propName() {
+            // getter, code executed on getting obj.propName
+        },
+        set propName(value) {
+            // setter, code executed on setting obj.propName = value
+        }
+    }
+
+When `obj.propName` is read, the getter works. When it is assigned, the setter works.
+
+e.g. If we have an object with a name and a surname, and we want a full name property, we can implement it as an accessor.
+
+    let user = {
+        name: "John",
+        surname: "Smith",
+        get fullname() {
+            return `${this.name} ${this.surname}`
+        }
+    };
+
+From the outside, this `fullName` accessor property will look just like a regular one. So we DON'T call it as a function, but just like `user.fullName`.
+
+So far `fullName` only has a getter, so if you try to assign `user.fullName = ` there will be an error. If you want to be able to set it:
+
+    let user = {
+        name: "John",
+        surname: "Smith",
+        get fullname() {
+            return `${this.name} ${this.surname}`
+        },
+        set fullName(value) {
+            [this.name, this.surname] = value.split(" ");
+        }
+    };
+
+Now you have a "virtual" property that is readable/writable.
+
+### Accessor descriptors
+Descriptors for accessor properties: there's no `value` or `writable`. Instead there are get and set functions.
+
+An accessor descriptor may have:
+- `get` - function without arguments that executes when property is read
+- `set`, function with one argument, called when property is set
+- `enumerable`, same as data properties
+- `configurable`, same as data properties
+
+To create an accessor `fullName` with `defineProperty`, you can pass a descriptor with `get` and `set`:
+    
+    let user = {
+        name: "John",
+        surname: "Smith",
+    };
+
+    Object.defineProperty(user, 'fullName', {
+        get() {
+            return `${this.name} ${this.surname}`;
+        },
+        set(value) {
+            [this.name, this.surname] = value.split(" ");
+        }
+    });
+
+    alert(user.fullName); // John Smith
+
+    for(let key in user) alert(key); // name, surname
+
+A property can be an accessor (has `get/set` methods) or a data property (has a `value`), NOT both.
+
+If we try to supply both `get` and `value` in the same descriptor, there will be an error.
+
+    // Error: Invalid property descriptor.
+    Object.defineProperty({}, 'prop', {
+        get() {
+            return 1
+        },
+
+        value: 2
+    });
+
+### Smarter getters/setters
+You can use getters/setters as wrappers over "real" property values to gain more control over operations with them.
+
+e.g. If you want to have a minimum length for `user`, you can have a setter `name` and keep the value in a separate property `_name`.
+
+    let user = {
+        get name() {
+            return this._name;
+        },
+        set name(value) {
+            if (value.length < 4) {
+                alert ("Name is too short, need at least 4 characters");
+                return;
+            }
+            this._name = value;
+        }
+    };
+
+    user.name = "Pete";
+    alert(user.name); // Pete
+
+    user.name = ""; // Name is too short...
+
+Here, the value is stored in `_name`, and access is done via getter and setter.
+
+*Technically*, external code will be able to access the name directly with `user._name`, but the convention is that `_` indicates a private property that shouldn't be touched.
+
+### Using for compatibility
+One of the great uses of accessors is that they allow control over a "regular" data property anytime by replacing it with a getter and setter and tweaking its behaviour.
+
+e.g If we start off implementing user objects using data properties `name` and `age`:
+
+    function User(name, age) {
+        this.name = name;
+        this.age = age;
+    }
+
+    let john = new User("John", 25);
+
+    alert( john.age ); // 25
+
+But then later we decide that storing `birthday` might be more convenient and accurate:
+
+    function User(name, birthday) {
+        this.name = name;
+        this.birthday = birthday;
+    }
+
+    let john = new User("John", new Date(1992, 6, 1));
+
+So, you could go back and change all the places that `age` appears throughout the code. But that will take time and can be very difficult to do, especially if the code is used by many other people. Also, it's still not a bad idea for a `user` to have `age`.
+
+So, you can keep it and add a getter for `age` to fix this.
+
+    function User(name, birthday) {
+        this.name = name;
+        this.birthday = birthday;
+
+        // age is calculated from the current date and birthday
+        Object.defineProperty(this, "age", {
+            get() {
+                let todayYear = new Date().getFullYear();
+                return todayYear - this.birthday.getFullYear();
+            }
+        });
+    }
+
+    let john = new User("John", new Date(1992, 6, 1));
+
+    alert( john.birthday ); // birthday is available
+    alert( john.age );      // ...as well as the age
+
+## Classes
+Basic syntax:
+
+    class MyClass {
+        // class methods
+        constructor() { }
+        method1() { ... }
+        method2() { ... }
+        method3() { ... }
+        ...
+    }
+
+Then use `new MyClass()` to create a new object with all the listed methods. `new` will automatically call the `constructor` method, initializing the object.
+
+e.g.
+
+    class User {
+        constructor(name) {
+            this.name = name;
+        }
+
+        sayHi() {
+            alert(this.name);
+        }
+    }
+
+    let user = new User("John");
+    user.sayHi();
+
+When `new User("John")` is called:
+1. A new object is created.
+2. The constructor runs with the given argument and assigns it to this.name.
+
+...Then we can call object methods, such as `user.sayHi()`.
+
+**NOTE**: Don't put commas between class methods, you'll get a syntax error. Classes aren't object literals.
+
+### What is a class?
+In JavaScript, a class is a kind of function.
+
+    class User {
+        constructor(name) { this.name = name; }
+        sayHi() { alert(this.name); }
+    }
+
+    // proof: User is a function
+    alert(typeof User); // function
+
+What `class User {...}` construct really does:
+1. Creates a function `User`, which is the result of the class declaration. The function code is taken from the `constructor` method (assumed empty if there isn't one).
+2. Stores class methods e.g. `sayHi` in `User.prototype`.
+
+After `new User` object is created, when we call its method, it's taken from the prototype. So the object has access to class methods.
+
+We can illustrate the result of declaring `class User` as:
+    class User {
+        constructor(name) { this.name = name; }
+        sayHi() { alert(this.name); }
+    }
+
+    // class is a function
+    alert(typeof User); // function
+    
+    // ...or, more precisely, the constructor method
+    alert(User === User.prototype.constructor); // true
+
+    // The methods are in User.prototype, e.g:
+    alert(User.prototype.sayHi); // the code of the sayHi method
+
+    // there are exactly two methods in the prototype
+    alert(Object.getOwnPropertyNames(User.prototype)); // constructor, sayHi
+
+### Not just syntactic sugar
+Technically you can achieve what a class achieves without using the `class` keyword at all, using a constructor function.
+
+Note: A function prototype has "constructor" property by default, so we don't need to create it.
+
+The outcome of a constructor will be roughly the same as using a class. So there are reasons why `class` can be considered syntactic sugar to define a constructor together with its its prototype methods.
+
+Still, there are important differences.
+1. A function created by `class` is labelled by a special internal property `[[IsClassConstructor]]: true`. So it's not entirely the same as creating it manually.
+
+JS checks for that property in a variety of places. e.g. Unlike a regular function, it must be called with `new`:
+
+    class User {
+        constructor() { }
+    }
+
+    alert (typeof User); // function
+    User(); // Error: Class constructor User cannot be invoked without 'new'
+
+Also, a string representation of a class constructor in most JS engines starts with the "class..."
+
+    class User {
+        constructor() {}
+    }
+
+    alert(User); // class User { }
+
+2. Class methods are non-enumerable. A class definition sets `enumerable` flag to `false` for all methods in the prototype. Which is good because if you `for...in` over an object, you don't want its class methods.
+3. Classes always `use strict`. **ALL code inside the class construct uses strict mode automatically**.
+
+There are also other `class` features.
+
+### Class Expression
+Just like functions, classes can be defined inside another expression/passed around/returned/assigned etc.
+
+Here's an example of a class expression:
+    let User = class {
+        sayHi() {
+            alert("Hello");
+        }
+    };
+
+Similar to Named Function Expressions, class expressions may have a name (visible within the class only):
+
+    // "Named Class Expression"
+    // (no such term in the spec, but that's similar to Named Function Expression)
+    let User = class MyClass {
+        sayHi() {
+            alert(MyClass); // MyClass name is visible only inside the class
+        }
+    };
+
+    new User().sayHi(); // works, shows MyClass definition
+
+    alert(MyClass); // error, MyClass name isn't visible outside of the class
+
+You can also make classes dynamically "on demand":
+
+    function makeClass(phrase) {
+        // declare and return class
+        return class {
+            sayHi() {
+                alert(phrase);
+            }
+        };
+    }
+
+    // Create a new class
+    let User = makeClass("Hello");
+
+    new User().sayHi(); // Hello
+
+Kind of like the same concept as factory function.
+
+### Getters/setters
+Just like literal objects, classes can use getters/setters.
+
+    class User {
+        constructor(name) {
+            this.name = name;
+        }
+
+        get name() {
+            return this._name;
+        }
+
+        set name(value) {
+            if (value.length < 4) {
+                alert("name too short");
+                return;
+            }
+            this._name = value;
+        }
+    }
+
+### Computed names [...]
+Example of a computed method name using `[]`
+
+    class User {
+        ['say' + 'Hi']() {
+            alert("Hello");
+        }
+    }
+
+    new User().sayHi();
+
+Similar to object literals.
+
+### Class fields
+NOTE: Class fields are a recent addition to the language, older browsers may need a polyfill.
+
+Class fields are a syntax allowing you to add any properties. e.g. Adding the property `name` to the class `User` like `name = "John"`, or via an expression.
+
+The important difference of class fields: **they are set on individual objects**, not `User.prototype` (for example).
+
+MDN uses the words "field" and "property" interchangeably when talking about classes.
+
+### Bound methods with class fields
+Remembering that functions in JS have a dynamic `this`, depending on the context of the call, if an object method is passed around and called in another context, `this` won't be a reference to its object anymore.
+
+e.g. this code will show `undefined`:
+
+    class Button {
+        constructor(value) {
+            this.value = value;
+        }
+
+        click() {
+            alert(this.value);
+        }
+    }
+
+    let button = new Button("hello");
+
+    setTimeout(button.click, 1000); // undefined
+
+I believe setTimeout (a function invocation) changes the `this` context of object methods.
+
+You can fix this by binding the method to the object, or passing a wrapper function like `setTimeout(() => button.click(), 1000)`, but you could also use this class field syntax:
+
+    class Button {
+        constructor(value) {
+            this.value = value;
+        }
+        click = () => {
+            alert(this.value);
+        }
+    }
+
+    let button = new Button("hello");
+
+    setTimeout(button.click, 1000); // hello
+
+The class field `click = () => {...}` is created on a *per-object* basis. There's a separate function for each `Button`, and the `this` references that object. So `button.click` can be passed anywhere and the value of `this` will stay consistent. This is very useful in the browser environment, for event listeners.
+
+NOTE: I think this is because of the `this` behaviour of arrow functions, which may or may not be a class-specific thing (I don't think so though).
+
+### TL;DR
+A class is technically the constructor function, while methods, getters and setters are written to the class's prototype.
+
+What this also means that defining methods outside of the constructor will mean those methods are stored on the prototype, not the object itself.
+
+### Private field declarations
+Preceding a variable with `#` will mean that you get an error when trying to reference that property from outside the constructor.
+
+    class Rectangle
+        #height = 0;
+        #width;
+        constructor(height, width) {
+            this.#height = height;
+        }
+
+### static
+When declaring a class field with the word `static` in front, e.g. `static this.value = 3;`, this property will only be able to be directly accessed by the class itself, not on any instances of it. 
+
+Static methods are often utility functions (e.g. create/clone objects), whereas static properties are useful for cacheing/configuration, or any data that doesn't need to replicated across instances.
+
+Static fields without initializers are initialized to have an `undefined` value.
+
+To call a static method, you need to use the name of the original class, and not any of its instances.
+
+#### Static blocks
+These allow you to perform additional static initializations during the evaluation of class definitions. A class can have any number of static initialization blocks in its body, evaluated in the order they are declared. Any static initialization in super classes is performed before its subclasses.
+
+In a static block, `this` refers to the constructor object of the class.
+
+### Class extends
+To create a class that is a child of another class:
+
+    class ChildClass extends ParentClass
+
+Any constructor that can be called with `new` (meaning it has the prototype property) can be the candidate for a parent class. This includes declaring a class right after the `extends` keyword.
+
+`extends` sets the prototype for both `ChildClass` and `ChildClass.prototype`.
+
+**NOTE**: The base class (parent) may return anything from its constructor, but the derived class must return an object or `undefined`, or you'll get a TypeError.
+
+If the parent class returns an object, that object will be used as the `this` value for the derived class when initialising class fields.
+
+Example of class extends:
+
+    class Square extends Polygon {
+        constructor(length) {
+            // Here, it calls the parent class' constructor with lengths
+            // provided for the Polygon's width and height
+
+            super(length, length);
+            // Note: In derived classes, super() must be called before you
+            // can use 'this'. Leaving this out will cause a reference error.
+
+            this.name = 'Square';
+        }
+
+        get area() {
+            return this.height * this.width;
+        }
+    }
+
+You can also extend built-in objects, such as `Date`.
+
+    class myDate extends Date {
+        getFormattedDate() {
+            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            return `${this.getDate()}-${months[this.getMonth()]}-${this.getFullYear()}`;
+        }
+    }
+
+### super
+The `super` keyword is used to access properties on an object literal or class's Prototype, or invoke a superclass's constructor. It can be used as a function call `super(...args)` or a property lookup `super.prop`/`super[expression]`.
+
+**NOTE**: `super` is a keyword, It is NOT a variable that points to the prototype object. Reading `super` itself will be a SyntaxError.
+
+**A superclass is the parent class of a class.**
+
+### Mix-ins
+Abstract subclasses, or *mix-ins*, are templates for classes. An ECMAScript can only have one superclass, so functionality must be provided by the superclass.
+
+A function with a superclass as an input and a subclass extending that superclass as an output can be used to implement mixins in ECMAScript (JavaScript).
+
+    const calculatorMixin = (Base) => class extends Base {
+        calc() { }
+    };
+
+    const randomizerMixin = (Base) => class extends Base {
+        randomize() { }
+    };
+
+Then you can write a class that uses these mix-ins:
+
+    class Foo { }
+    class Bar extends calculatorMixin(randomizerMixin(Foo)) { }
+
