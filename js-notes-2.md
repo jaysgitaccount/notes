@@ -2816,7 +2816,7 @@ e.g. this code will show `undefined`:
 
 I believe setTimeout (a function invocation) changes the `this` context of object methods.
 
-You can fix this by binding the method to the object, or passing a wrapper function like `setTimeout(() => button.click(), 1000)`, but you could also use this class field syntax:
+You can fix this by binding the method to the object, or passing a wrapper function like `setTimeout(() => button.click(), 1000)`, but you could also use this **class field** syntax:
 
     class Button {
         constructor(value) {
@@ -2930,3 +2930,293 @@ Then you can write a class that uses these mix-ins:
     class Foo { }
     class Bar extends calculatorMixin(randomizerMixin(Foo)) { }
 
+## Function declaration vs expression
+
+Function declaration:
+
+    function myFunction() {
+        // code
+    }
+
+Function expression:
+
+    const myFunc = function() {
+        // code
+    }
+
+    const myArrowFunc = () => {
+        // code
+    }
+
+Named function expression (referring to the current function inside the function body):
+
+    const math = {
+        factit: function factorial(n) {
+            console.log(n)
+            if (n <= 1) {
+                return 1;
+            }
+            return n*factorial(n-1);
+        }
+    };
+
+    math.factit(3); // 3;2;1
+
+Unnamed function (assigned to x, usage `x(y)`):
+
+    const x = function(y) {
+        return y * y;
+    };
+
+This is most commonly used as a callback.
+
+The differences between function declarations and expressions: 
+- in expressions, the function name can be omitted to create an anonymous function.
+- function declarations are hoisted, expressions are not.
+
+## Promises
+A promise:
+- is a placeholder for an async operation.
+- returns a `Promise` object on *execution*, in which you can register callbacks that will be executed on *completion* (success or failure) of the async operation.
+
+This example uses XMLHttpRequest. I use fetch API which automatically returns a promise, but I think it's good to be aware that this structure exists.
+
+    // Make a promise
+    function get(url){
+        return new Promise(function(resolve, reject) {
+            let xhttp = new XMLHttpRequest();
+            xhttp.open("GET", url, true);
+            xhttp.onload = function() {
+                if (xhttp.status == 200) {
+                    resolve(JSON.parse(xhttp.response));
+                } else {
+                    reject(xhttp.statusText);
+                }
+            };
+            xhttp.onerror = function() {
+                reject(xhttp.statusText);
+            };
+            xhttp.send();
+        });
+    }
+
+    // Use a promise
+    var promise = get("data/tweets.json");
+
+    promise.then(function(tweets) {
+        console.log(tweets);
+        return get("data/friends.json");
+    }).then(function(friends) {
+        console.log(friends)
+    }).catch(function(error) {
+        console.log(error)
+    });
+
+In order to utilise a promise, you'll want to return a Promise object (if your method does not already do that).
+
+    function get(url) {
+        return new Promise((resolve, reject) => {
+
+        })
+    }
+
+**Please note:** resolving and fulfilling are NOT the same thing.
+
+Resolving is when a promise is settled/locked in to match the eventual state of another promise, and further resolving/rejecting has no effect. Resolved promises can be pending or rejected as well. See:
+
+    new Promise((resolveOuter) => {
+        resolveOuter(
+            new Promise((resolveInner) => {
+                setTimeout(resolveInner, 1000);
+            })
+        )
+    })
+
+What is this code snippet doing?
+
+This code is creating a new Promise, which resolves to create ANOTHER promise, which then waits until after 1000ms before resolving.
+
+Because `resolveOuter` is called synchronously, the status of this first Promise is already *resolved* when it's created. HOWEVER, it has resolved with another Promise, therefore it won't be *fulfilled* until 1 second later, when the inner promise fulfills.
+
+
+### .catch()
+It's good to have a `Promise.catch()` to terminate your promise chain.
+
+### .finally()
+Usage:
+
+    promise.then(() => )
+    .then(() => )
+    .catch((() => ))
+    .finally();
+
+`Promise.finally()` runs regardless of the outcome of the previous promise, so you should use it to run cleanup or code that you'd like to run that does not depend on previous outcomes.
+
+### Things to keep in mind when you encounter a promise
+- Always return results! Otherwise, callbacks won't catch the result of a previous promise, resulting in a "floating" promise (no way to track its settlement anymore)
+
+When async code executes, it will execute with the value that it has at the time. This sounds obvious, but it means that if you simply have `(data) => array.push(data)` as the callback in a `.then()`, the next `.then()` will NOT have access to this result, so if `array` was declared as an empty array OUTSIDE of your promise chain, then accessing `array` in the next `.then()` will access the initial empty array. This is reminding me of "stale references" in React.
+
+    const listOfIngreds = [];
+
+    doSomething()
+        .then((url) => {
+            // We didn't return this
+            fetch(url)
+                .then((res) => res.json())
+                .then((data) => {
+                    listOfIngreds.push(data);
+                });
+        });
+        .then(() => {
+            console.log(listOfIngreds); // Always []
+        })
+
+In this example, `fetch` returns a Promise object, but only for a chained `.then`. We didn't return anything for the outer `.then` to pass to the next part of the chain.
+
+## JavaScript Event Loop
+
+### Call Stack
+A data structure which records where in the program we are currently.
+
+If we step into a function, we push to the top of the stack. If we return from a function, we pop off the top of the stack.
+
+#### Example
+
+    function multiply(a, b) {
+        return a * b;
+    }
+
+    function square(n) {
+        return multiply(n, n);
+    }
+
+    function printSquare(n) {
+        let squared = square(n);
+        console.log(squared);
+    }
+
+    printSquare(4);
+
+So first, we'll have `main()` function added to the stack, kind of like the file itself.
+
+Then, the first function call encountered get pushed onto the stack. This is `printSquare`. 
+
+Then, in `printSquare`, we encounter `square`, adding that on top of the stack.
+
+Then, because `square` calls `multiply`, we put that on the stack.
+
+In `multiply`, we have a return statement and we aren't invoking any other functions. So we execute this, and pop `multiply` off the top of the stack.
+
+Then, we next encounter the return statement in `square`, so we resolve that and pop `square` off the stack too.
+
+Next, we return to `printSquare`, and finish executing the first line where we called `square`. Then we encounter `console.log(squared)`, and push that on top of the stack. Then, it's executed as is, so it goes off the top of the stack.
+
+Then, we're done with `printSquare` (there's an implicit return because we're at the end of the function), so pop it off the stack as well. And then we're done with `main` so that goes off too. Now the call stack is empty.
+
+#### Stack trace
+We see the call stack visualised when we encounter an error in the console of a browser (what caused the error -> function where the error was caused -> what called that function -> etc), this is the stack trace.
+
+#### Blowing the call stack
+
+    function foo() {
+        return foo();
+    }
+
+    foo();
+
+The call stack will look like this:
+
+    foo();
+    foo();
+    foo();
+    foo();
+    main();
+
+ With `foo();` being added infinitely to the call stack.
+
+ The browser will kill the document if this occurs, which is also called "blowing the stack".
+
+ ### Blocking
+ When a slow piece of code is on the call stack, the call stack is "blocked". e.g. a very large while loop (which is synchronous). Most "blocking" methods in browsers are asynchronous though.
+
+JavaScript is a **single-threaded** language, which means it can only do one thing at a time at runtime. If the call stack is blocked (e.g. with a very large synchronous function invocation), the user can continue to interact with what's on the browser but they won't receive any feedback from it, because things won't be re-rendering.
+
+However, the browser is not just the JavaScript runtime. This is why browsers can handle a fetch request while still repainting the UI.
+
+Here's a very nice diagram that I worked hard to create.
+
+             JS Runtime                     WebAPIs
+    _____________    _____________      _________________
+    |    heap    |  |    stack   |     |  DOM(document)  |
+    |            |  |            |     |_________________|
+    |            |  |            | --> |   ajax request  |
+    |            |  |            |     |_________________|
+    |            |  |____________|     |    setTimeout   |
+    |            |  |    foo()   |     |_________________|
+    |            |  |____________|              |
+    |            |  |    bar()   |              |
+    |            |  |____________|              |
+    |            |  |    baz()   |              |
+    |            |  |____________|              |
+    |            |  |    main()  |              |
+    |____________|  |____________|              v
+
+            event loop    ^
+                          |        callback queue
+                        ___\____________________________________________
+                         _______   _______   _______
+                        |       | |       | |       |
+                        |onClick| |onClick| |onClick|
+                        |_______| |_______| |_______|
+                        ________________________________________________
+
+The `heap` is an area of memory where objects are stored when we define variables.
+
+The WebAPIs are supplied by the browser for developers to use to make complex processes. The ones shown are just examples, there are many.
+
+### Event loop & callback queue
+Applying this example to the call stack:
+
+    console.log('Hi');
+
+    setTimeout(function cb() {
+        console.log('there');
+    }, 5000);
+
+    console.log(':)');
+
+First (assuming `main()` is already on the stack), `console.log('Hi');` is pushed to the stack, then executed, then popped off.
+
+Then, the `setTimeout` callback `cb` is pushed onto the stack (on top of `main()`). This kicks off a timer using the setTimeout web API for 5 seconds. This is handled outside of the call stack, so the `setTimeout` call is considered complete and popped off the stack, *even though the timer hasn't completed yet*.
+
+Then `console.log(':)')` is added on top of the stack, executed, then popped off the stack.
+
+Then, since we're done with this `main()`, that goes off the stack too.
+
+After any Web API finishes doing whatever task it's doing, it pushes the task to the **callback queue**. We can't have the Web APIs send their result directly to the call stack, as it would just appear in the middle of whatever task, which would be bad. That's what the callback queue, and the **event loop**, are for.
+
+So, after the 5 second timer finishes, the web API sends `cb` to the callback queue, for the event loop to manage. The event loop has only one job: if the call stack is empty, it takes the first task in the callback queue, and pushes it onto the stack. In this case, the stack was already empty, so the `console.log` runs, then it gets popped off the stack, and we're done.
+
+### The event loop
+If you want to defer something until the stack is clear, you can use `setTimeout(callback, 0)`, to take advantage of the fact that the callback will be delayed until the stack is next empty.
+
+AJAX requests work in the same system. As the code for AJAX requests lives in the browser, not in any of your JS files, your `get` request will be shunted off to be handled by a web API and the stack can continue, regardless of when the request completes, or whether or not the request completes successfully at all!
+
+Let's say we have a button, and we add an event listener for the `click` event, with a callback that runs a simple `console.log`. When you click on this button, the web API first registers the click, then adds the callback to the callback queue. When the stack is empty, this callback gets added to the stack.
+
+Web APIs are inherently async.
+
+### Async APIs
+Due to the way the event loop works, setTimeout (and other browser APIs) can't guarantee a set order/time of execution. A setTimeout with `4000` can only guarantee that it will be executed after a MINIMUM of 4000ms, not that it will execute after 4000ms passes.
+
+### Render queue
+This whole event loop sequence is happening alongside the browser queueing renders. The browser wants to repaint the screen every frame, at a rate of 60fps, but it's constrained by what we're doing in JS. Similarly to the callback queue, the browser can't perform a render until the call stack is clear.
+
+The difference is that the renders are given a higher priority than the callback queue. So the browser queues a render every 16ms (the rate at which 60fps repaints would happen), then waits until the stack is empty to execute the render.
+
+So, while a large synchronous task is occurring, the call stack will be blocked, so the render is also blocked. This means that on the user's end, the browser will be "hanging".
+
+But, when doing async operations, the call stack is only blocked while we're queueing up async callbacks, which is usually relatively quick. After that, the browser will render. Then, something from the callback queue will be pushed onto the stack. Then, another render will occur. etc.
+
+Be careful about "flooding the queue", e.g. having an event listener for scrolling without debouncing. 

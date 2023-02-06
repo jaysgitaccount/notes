@@ -1,4 +1,4 @@
-# Accessibility-Notes
+# Accessibility Notes
 I started this file after trying to add keyboard controls to a custom combobox in my Timezone Tracker project. I didn't want to build a widget from scratch, but I had to after I realised that Firefox Android completely doesn't support datalists at the moment even though caniuse says they do (due to a bug that hasn't been fixed for 4 years). The length of the dropdown I needed necessitated a combobox, so here we are.
 
 ## Combobox with list autocomplete
