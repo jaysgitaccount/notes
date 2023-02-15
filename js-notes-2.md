@@ -2976,6 +2976,7 @@ The differences between function declarations and expressions:
 
 ## Promises
 A promise:
+- essentially is an object that might produce a value in the future
 - is a placeholder for an async operation.
 - returns a `Promise` object on *execution*, in which you can register callbacks that will be executed on *completion* (success or failure) of the async operation.
 
@@ -3020,6 +3021,7 @@ In order to utilise a promise, you'll want to return a Promise object (if your m
         })
     }
 
+#### Resolving vs fulfilling
 **Please note:** resolving and fulfilling are NOT the same thing.
 
 Resolving is when a promise is settled/locked in to match the eventual state of another promise, and further resolving/rejecting has no effect. Resolved promises can be pending or rejected as well. See:
@@ -3036,7 +3038,7 @@ What is this code snippet doing?
 
 This code is creating a new Promise, which resolves to create ANOTHER promise, which then waits until after 1000ms before resolving.
 
-Because `resolveOuter` is called synchronously, the status of this first Promise is already *resolved* when it's created. HOWEVER, it has resolved with another Promise, therefore it won't be *fulfilled* until 1 second later, when the inner promise fulfills.
+Because `resolveOuter` is called synchronously, the status of this first Promise is already *resolved* when it's created. HOWEVER, it has resolved with another Promise, therefore it won't be *fulfilled* until 1 second later, when the inner promise *fulfills*.
 
 
 ### .catch()
@@ -3220,3 +3222,244 @@ So, while a large synchronous task is occurring, the call stack will be blocked,
 But, when doing async operations, the call stack is only blocked while we're queueing up async callbacks, which is usually relatively quick. After that, the browser will render. Then, something from the callback queue will be pushed onto the stack. Then, another render will occur. etc.
 
 Be careful about "flooding the queue", e.g. having an event listener for scrolling without debouncing. 
+
+## async await
+Usage:
+
+    async function getPersonInfo(name) {
+        const people = await server.getPeople();
+        const person = people.find(person => { return person.name === name });
+        return person
+    }
+
+`async` keyword lets JS know we are declaring an asynchronous function. This is required to use `await` inside any function. A function declared with `async` **automatically returns a promise**. Returning in an `async` function is the same as resolving a promise. Similarly, throwing an error will reject the promise.
+
+**NOTE**: `async` functions are syntactical sugar for promises.
+
+You can use `async` before any type of function signature.
+
+    const func = async () => {
+        // do something asynchronously and return a promise
+        return result;
+    }
+
+    array.forEach(async item => {
+        // do something asynchronously for each item
+        // You can also use .map to return an array of promises to use Promise.all()
+    })
+
+    server.getPeople().then(async people => {
+        people.forEach(person => {
+            // do something asynchronously for each person
+        });
+    });
+
+`await` tells JavaScript to wait for an async action to finish before continuing the function, like a "pause until done" keyword. It's used to get a value from a function where you would normally use `.then()`. Instead of calling `.then()`, you simply assign the result to a variable using `await`. Then you can use the result in your code as if it is synchronous.
+
+### Handling errors
+Because `async` functions return a promise, you can just call the function and put `.catch()` on the end.
+
+    asyncFunc().catch( error => {
+        console.log(error);
+    })
+
+You can also use the `try/catch` block, if you want to handle the error directly inside the function.
+
+    async function getPersonInfo(name) {
+        try {
+            const people = await server.getPeople();
+            const person = people.find(person => { return person.name === name })
+            return person;
+        } catch (error) {
+            // Handle the error any way you want
+        }
+    }
+
+This way can look messy, but it's an easy way to handle errors without `catch`.
+
+## Promises
+
+Interesting structure I encountered:
+
+**What is the difference between these 4 promises?**
+
+    doSomething().then(function() {
+        return doSomethingElse();
+    })
+
+    doSomething().then(function() {
+        doSomethingElse();
+    })
+
+    doSomething().then(doSomethingElse())
+
+    doSomething().then(doSomethingElse)
+
+It looked confusing at first. BUT, each of these have distinct outcomes.
+
+1. This executes `doSomething()`, then executes `doSomethingElse()` *with no arguments*
+2. This example executes `doSomethingElse()`, again with no arguments, as expected in the promise chain, but the `.then()` handler returns `undefined`, because we did not return anything. The result of `doSomethingElse()` is not caught ( a "floating" promise?).
+3. So this one is executing `doSomething()`, BUT THEN before resolving it, executing `doSomethingElse()` *with no arguments* (the brackets invoke the function), THEN the result of `doSomethingElse()` is passed through as the `.then()` handler. You basically don't want to do this.
+4. This one is basically 
+
+    doSomething().then(function(result) {
+        return doSomethingElse(result);
+    })
+
+The fulfilled value of `doSomething()` is passed into `doSomethingElse` as its *first* argument, because there are no brackets specified (which would explicitly indicate that no arguments are to be passed).
+
+### Why promises always execute before setTimeout callbacks
+Alongside the task queue (aka ScriptJobs queue) that we learned about when studying the event loop, there is also the "microtask queue", aka PromiseJobs queue. Basically, all promise callbacks go into this queue when they are handed off by the Web API.
+
+The important thing to note is that the event loop prioritises **emptying** the microtask queue before reaching for the next task. Another way of saying this is that all microtasks queued during a task will be prioritised before the next task is queued. 
+
+**NOTE**: The event loop prioritising microtasks *includes* any microtasks that these current microtasks may queue. This means you need to be careful if you're going to queue microtasks from microtasks; you may get performance issues. 
+
+## `undefined` vs `null` vs undeclared
+A variable that has not been declared yet (isn't even in this script basically).
+
+`undefined` indicates that the variable does exist, but has not been assigned a value yet.
+
+`null` means that the variable HAS been assigned a value, but (intentionally or not) this value is "nothing", or the absence of a value. It's useful for purposefully assigning something as empty/not having a value. If you're debugging, `null` may indicate that an attempt to assign a value has occurred, but failed.
+
+## `var`, `let`, `const`
+`var` is **function scoped**. A `var` variable can be accessed anywhere within a function where it has been declared.
+
+A variable declared with `var`, if accessed before it has been assigned a value, CAN be accessed, but will have the value of `undefined`. However this only applies if it is accessed within the correct scope (anywhere within a function where it exists).
+
+    (function myFunc() {
+        console.log(a) // Has value of 'undefined'
+        if (true) {
+            var a = "yeet"
+        }
+        console.log(a) // Will print "yeet"
+    })();
+
+    console.log(a) // ReferenceError: a is not defined
+
+`let` and `const` are **block-scoped**. They can only be accessed WITHIN the block that they were declared in.
+
+    (function myFunc() {
+        console.log(a) // ReferenceError: a is not defined
+        if (true) {
+            let a = "yeet"
+            console.log(a) // "yeet"
+        }
+        console.log(a) // ReferenceError: a is not defined
+    })();
+
+    console.log(a) // ReferenceError: a is not defined
+
+The difference between `let` and `const` are that `const` values CANNOT be reassigned. e.g. `const array = [1, 2, 3]` you CAN change the values within the array, but you can't do `array = [4, 5, 6]`.
+
+## THe `=` operator and assignment expressions
+
+From [these questions](https://github.com/h5bp/Front-end-Developer-Interview-Questions/blob/main/src/questions/coding-questions.md), I was particularly interested in the solutions for these two problems:
+
+1. What is the value of foo.x?
+
+    var foo = {n: 1};
+    var bar = foo;
+    foo.x = foo = {n: 2};
+
+Solution: `undefined`
+
+2. What will the code below output to the console and why?
+
+    (function(){
+        var a = b = 3;
+    })();
+
+    console.log("a defined? " + (typeof a !== 'undefined'));
+    console.log("b defined? " + (typeof b !== 'undefined'));
+
+Solution: `a defined? false` and `b defined? true`
+
+I didn't know the answers to either of these so I thought I'd take notes on them.
+
+### Question 2, the `=` operator
+Let's talk about 2 first. Inside the IIFE, we have `var a = b = 3`. The `=` operator has *right to left* precedence. So it's actually `b = 3`, `a = b`.
+
+It's also important to know that in JavaScript, you CAN declare variables without a keyword in front of them. These variables are **global**. So what actually happened is that first, we evaluated `b = 3`, creating the global variable `b` and assigning it the value of `3`. Then, we assigned `a` the value of `b`, also 3.
+
+So, outside of the IIFE, `var a` is `undefined`, because `var` variables are restricted by function scope. BUT, `b` IS defined, because it is a global variable.
+
+### Question 1, assignment expressions
+Even though `foo.x = foo = {n: 2};` has roughly the same structure as in Q2, this is actually an assignment expression, `(foo.x) = (foo = {n: 2});`. 
+
+> At a high level, an expression is a valid unit of code that resolves to a value. There are 2 types: those with side effects (e.g. assigning values) and those that purely *evaluate*.
+> `x = 7` is the first type, using the `=` operator to assign `7` to `x`. The expression itself evaluates to `7` (if you `console.log(x=7)`, you will see `7`).
+> `3 + 4` is an example of the second type. It produces `7`, but if it's not part of a bigger construct (e.g. `const z = 3 + 4`), its result is immediately discarded. 
+
+So, in 
+
+    var foo = {n: 1};
+    var bar = foo;
+    foo.x = foo = {n: 2};
+
+First we create `foo` with the assigned value (an object). `(var foo) = ({n: 1})` We create the object `{n:1}` first, then we create `var foo`, then `foo` is assigned the object.
+
+Then, we create `bar`, a variable that references the same object that `foo` references. This is where I was confused for a bit. `bar` is only POINTING to the same object that `foo` is. The object's existence is not reliant on `foo` pointing to it just because `foo` was created first, and `bar` did NOT create its own independent (deep) copy of this object `{n:1}`. This is important later.
+
+#### Chaining/nesting assignments
+[This is the term](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Expressions_and_Operators#assignment_operators) for what's happening here. It's also discouraged coding practice because it creates surprising behaviour. I guess that's why it's part of this problem.
+
+So looking at `foo.x = foo = {n: 2}`, this is actually not simply a right to left `=` statement, because it is an assignment expression. It is `foo.x = (foo = {n: 2})`.
+
+In the same way, `var a = b = 3` is actually `var a = (b = 3)`.
+
+**NOTE**: In the case of logical assignments, like `x &&= f()`, `x || f()`, `x ??= f()`, the return value is that of the logical operation without the assignment. e.g `x && f()`.
+
+When chaining these expressions without parentheses or other grouping operations like array literals, they are **grouped right to left** (the assignment operator `=` is "right-associative"), but they are **evaluated left to right**.
+
+Back to the question.
+
+In `foo.x = foo = {n: 2}`:
+1. First, `foo.x`, the left hand side, evaluates. So, the property `x` is created on the object assigned to `foo`.
+2. Then, `foo = {n:2}` evaluates. To break it down further, the left hand side `foo` is evaluates (no change). Then `{n:2}` is evaluated, creating this object. Then the existing variable `foo` is now assigned to the object `{n:2}`. THEN, the entire expression `foo = {n:2}` evaluates, to a value of `{n:2}`.
+3. Back to the whole line. `foo.x = {n:2}` Even though the value of `foo` is now `{n:2}`, `foo.x` evaluated FIRST, and it is referring to the `x` property on the original object that `foo` and `bar` were both pointing to *at the time of evaluation*.
+
+> Because `foo.x` was evaluated FIRST, and it is a reference to where the value of the right hand expression will be assigned to, it is a valid reference within this statement, even though `foo` has been reassigned already.
+
+4. Now, assign the result of the right hand operation `{n:2}` to the reference that `foo.x` resolved to in step 1. Which is the same as `bar.x`.
+
+After all this, `bar` has the value of `{ n:1, x:{n:2} }` (the original object). But, `foo` is now `{n:2}`, so `foo.x` is `undefined` because it doesn't exist.
+
+## Operators
+Very tricksy! Don't forget that `++x` and `x++` are different. `x++` increments x FIRST, then evaluates the rest of the statement. `++x` evaluates the code, THEN increments `x`.
+
+The AirBnB style guide actually discourages this because it can create silent errors, and recommends `x += 1` instead.
+
+## `this` again >.>
+VERY QUICK re-summary of the original article.
+
+`this` is the context that a function executes within. Its value is not consistent and is determined by how a function is invoked.
+
+1. Regular function invocation `myFunc()` - `this` is the global object (`undefined` in strict mode)
+2. Object method invocation `obj.myFunc()` - `this` is the object that owns the method `myFunc()`
+3. Constuctor invocation `new obj.myFunc()` = `this` is the object instance created by the `new` keyword
+4. Indirect invocation `myFunc.bind(this)`/`myFunc.apply(this, [1, 2, 3])` - `this` is the value of the first argument you passed in
+
+For arrow functions, their `this` resolves *lexically*, meaning it is the object that *defined* the arrow function. Basically, the outer block that the arrow function was defined in.
+
+## Indirect invocation
+`.bind(this)` - binds the `this` of a function to the given value.
+
+`.apply(this, arraylikeArg)` - first argument is the specified `this` value, followed by ONE argument, an array or array-like.
+
+`.call(this, ...args)` - first argument is the specified `this` value, followed by *individual* arguments
+
+## Optimisation
+Prioritise using JavaScript's higher-order functions instead of loops (e.g `array.map()` instead of `for...in` or `for` loop)
+
+## Arrays
+Arrays with empty elements `['a',, 'c']` (NOT undefined/null, but specifically empty) are valid in JS, and they are counted when counting an array's length. Holes in JS arrays are rare though, because JSONs do not support them.
+
+`for...in` and `forEach()` skip empty array elements. `for` and `for...of` do NOT.
+
+`forEach()` does NOT retain the outer scope's value of `this`, while `for/in`, `for` and `for/of` do.
+
+You also can't use `await` or `yield` within a `forEach()`.
+
+> `yield` is used to pause/resume a *generator* function
+

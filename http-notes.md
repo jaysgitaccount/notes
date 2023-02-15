@@ -125,3 +125,10 @@ So now we're either returning the body data (resolve), or an error (reject).
     };
 
 You could also access the stored error.data (from the argument errResData, which stands for "error response data"), inside `catch(err => { })` (as seen above).
+
+### .json()
+The `.json()` method of the Response interface returns a promise which resolves with the result of parsing the body text as a JSON.
+
+This means the result is NOT JSON, it is the result of taking JSON as an input and parsing it to produce a JS object.
+
+Also, the fact that this method returns a promise means that it should be performed in its own `.then()` step. The next `.then()` of the chain is where we will work with the result.
