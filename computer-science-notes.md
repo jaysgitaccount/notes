@@ -329,16 +329,16 @@ Another example:
 
         development: {
             sites: [{
-            name: 'Peter',
-            salary: 2000
+                name: 'Peter',
+                salary: 2000
             }, {
-            name: 'Alex',
-            salary: 1800
+                name: 'Alex',
+                salary: 1800
             }],
 
             internals: [{
-            name: 'Jack',
-            salary: 1300
+                name: 'Jack',
+                salary: 1300
             }]
         }
     };
@@ -354,10 +354,432 @@ An iterative approach would not be easy because the structure is not predictable
 OR, you could do recursion.
 
     function sumSalaries(department) {
-        // case 1, the exit clause
         // prev = previous salaries added up, current = current array element (object)
+
         if (Array.isArray(department) {
-            return department.reduce((prev, current) => prev + current.salary, 0) // sum the array
+            // If department is an array, sum array
+            return department.reduce((prev, current) => prev + current.salary, 0) 
+        }) else {
+            // If department is an object
+            let sum = 0
+            for (let subdep of Object.values(department)) {
+                sum += sumSalaries(subdep); // recursively call subdepartments
+            }
+            return sum
+        }
+    }
+
+Let's go through the call stack for this.
+
+    sumSalaries(company) // company is an object
+        sumSalaries(sales) // sales is an array
+            sales.reduce()
+        return 2600
+    (sum += 2600)
+        
+        sumSalaries(development) // object
+            sumSalaries(sites) // array
+                sites.reduce()
+            return 3800
+
+            sumSalaries(internals) // array
+                internals.reduce()
+            return 1300
+        return 0 + 1300 + 3800 // result of recursive call
+    (sum += 5100)
+
+    return 7700
+
+            
+
+Due to the structure of the given data, the function performs subcalls for an object, and performs addition for arrays (the "bottom level").
+
+> `Object.values` returns an array of objects which we iterate through in the `for` loop. If the current "level" of data is an object, we recursively perform subcalls for each 
+
+I don't think this function accounts for if there are subdepartments AND staff members who exist on the same level (e.g. general development staff who aren't part of a team). As soon as you encounter an array, you know that you'll be able to loop through the staff objects and add the salaries there. 
+
+## Recursive Structures
+
+A recursive (recursively defined) data structure is one that replicates itself in parts. e.g. the company structure above, a company department is:
+- either an array of people
+- or an object with departments
+
+For web, there are other examples: HTML and XML documents.
+
+In a HTML document, a HTML tag may contain a list of:
+- text pieces
+- HTML-comments
+- Other HTML-tags (that may in turn contain text pieces/HTML comments/other tags)
+
+This is a recursive definition.
+
+## Linked List
+
+Let's cover a data structure that may be a better alternative for arrays in some cases: **linked lists**.
+
+Let's say we want to store an ordered list of objects. The natural choice would be an array:
+
+    let arr = [ obj1, obj2, obj3 ]
+
+BUT, there are issues. The "delete element" and "insert element" operations are expensive. e.g. `arr.unshift(obj)` has to renumber all elements to make room for the new `obj`, and if the array is big, it takes time. Same with `arr.shift`.
+
+The only structural modifications that do NOT require mass renumbering are `push` and `pop` (these work with the end of the array). So an array can be quite slow for big queues if you need to work anywhere else except the end.
+
+If you really need fast insertion/deletion, you can choose a *linked list*, which is recursively defined as an object with:
+- `value`
+- `next` property referencing the next *linked list* or `null` if it's the end.
+
+For example:
+
+    let list = {
+        value: 1,
+        next: {
+            value: 2,
+            next: {
+                value: 3,
+                next: {
+                    value: 4,
+                    next: null
+                }
+            }
+        }
+    };
+
+Basically:
+
+         value  next  value  next  value  next  value  next 
+    list    1    ->     2     ->     3     ->     4     ->    null
+
+Alternative code for creation:
+
+    let list = { value: 1 };
+    list.next = { value: 2 };
+    list.next.next = { value: 3 };
+    list.next.next.next = { value: 4 };
+    list.next.next.next.next = null;
+
+You can see that there are multiple objects, each with the `value` and `next` pointing to the neighbour. The variable `list` is the first object in the chain, so following `next` pointers from it, we can reach any element.
+
+The list can easily be split into multiple parts and joined back.
+
+    let secondList = list.next.next;
+    list.next.next = null;
+
+Or,
+
+               value  next  value  next 
+          list    1    ->     2     ->    null
+
+               value  next  value  next 
+    secondList    3    ->     4     ->    null
+
+To join:
+
+    list.next.next = secondList;
+
+To prepend (stick on the front) a new value, we need to update the head of the list.
+
+    let list = { value: 1 };
+    list.next = { value: 2 };
+    list.next.next = { value: 3 };
+    list.next.next.next = { value: 4 };
+
+    // prepend the new value to the list
+    list = { value: "new item", next: list };
+
+Now, it's
+
+          value  next  value  next  value  next  value  next  value  next 
+    list   "new   ->     1     ->     2     ->     3     ->     4    ->    null
+          item"
+    
+To remove a value, change `next` of the previous one:
+
+    list.next = list.next.next;
+
+Now `1` is excluded from the chain. If it's not stored anywhere else, it will automatically be removed from the memory.
+
+          value  next  value  next  value  next  value  next 
+    list   "new   ->     2     ->     3     ->     4    ->    null
+          item"
+        
+Unlike arrays, there's no mass-renumbering, so it's easy to rearrange items.
+
+Obviously, lists are not always better than arrays. The main drawback: you can't easily access an element by its index number, like you can with `arr[i]`. You need to start with the first item and add `.next` `n` times to get the nth element.
+
+In instances like a queue or a "deque" (as in a double-ended queue, NOT "dequeue" the operation), you only need to add things to either end of the list and not the middle, but you need very fast adding/removing from both ends. That's probably where a linked list would come in.
+
+> A double-ended queue is an abstract data type that generalizes a queue, for which elements can be added can be added to either the front/head or the tail/back.
+
+Lists can be enhanced:
+- We can add the property `prev` in addition to `next` to reference the previous element, to move backwards easily.
+
+    let list = {
+        prev = null,
+        value: 1,
+        next: {
+            prev: list,
+            value: 2,
+            next: {
+                prev: list.next,
+                value: 3,
+                next {
+                    prev: list.next.next,
+                    value: 4,
+                    next: null
+                }
+            }
+        }
+    }
+
+    list.next.next.prev.value = 2
+
+- We can make a variable `tail` referencing the last element of the list (update this when adding/removing elements from the end)
+- Vary the data structure according to your needs
+
+### Tasks
+
+From [here](https://javascript.info/recursion#tasks)
+
+**Sum all numbers till the given one**
+
+Write a function `sumTo(n)` that calculates the sum of numbers `1 + 2 + ... + n`.
+
+Make 3 solution variants:
+1. `for` loop
+
+    function sumTo(n) {
+        let sum = 0;
+        for (let i = 0; i <= n; i++) {
+            sum += i;
+        }
+        return sum;
+    }
+
+2. Recursion: cause `sumTo(n) = n + sumTo(n-1)` for `n > 1`
+
+    function sumTo(n) {
+        if (n > 1) {
+            return n + sumTo(n-1);
+        }
+        return n;
+    }
+
+Test:
+    value = 3
+    sumTo(3)
+        3 + sumTo(2)
+            2 + sumTo(1)
+            return 1
+        return 3
+    return 6
+
+3. Using the **arithmetic progression** formula
+
+#### What is
+
+An arithmetic progression/sequence is a sequence of numbers such that the difference from any succeeding term to its preceding term remains constant throughout the sequence. The constant difference is called the "common difference" of that arithmetic progression.
+If the initial term of an arithmetic progression is called `a` and the common difference is `d`, the `n`th term of the sequence (a(small n)) is given by:
+
+    a(small n) = a + (n - 1)d
+
+If there are `m` terms in the AP, then a small m represents the last term, given by:
+
+    a small m = a + (m + 1)d
+
+The sum of the members of a finite AP is called an arithmetic series.
+
+e.g. 2 + 5 + 8 + 11 + 14 = 40
+
+You can find the sum by taking the number `n` of terms being added (here 5), multiplying it by the sum of the first and last number in the progression (here 2 + 14 = 16) and dividing by 2.
+
+#### The actual answer
+
+Use this formula: 
+
+    (n(first term + last term))/2
+
+In this case, the first term is always 1, because we are adding 1 each time. Also due to this, `n` is the argument, and the last term is also `n`.
+
+    function sumTo(n) {
+        return ( (n * (1 + n)) / 2 )
+    }
+
+**P.S. Which solution variant is the fastest? The slowest? Why?**
+The formula (#3) uses only 3 operations for any number `n`, making it the fastest. Followed by the loop variant. As the recursion involves nested calls and execution stack managment, which also require resources, it's slower.
+
+
+**P.P.S. Can we use recursion to count sumTo(100000)?**
+It depends on the engine but probably not, since recursion is usually limited to about 10000.
+
+Note: some engines support "tail call" optimization: if a recursive call is the last one in the function with no other calculations performed, then the outer function will not need to resume the execution, so the engine doesn't need to remember the execution context, thus saving memory. Most JavaScript engines don't support this though, so you will have an error for maximum stack size exceeded.
+
+**Calculate factorial**
+
+The factorial of a natural number `n` is the number multiplied by `n - 1`, then `n - 2`, and so on until 1. It is written as `n!`
+
+    n! = n * (n - 1) * (n - 2) * ... * 1
+
+Write a function `factorial(n)` that calculates `n!` using recursive calls.
+
+Note: apparently you can't do negative factorials so I won't worry about that.
+
+Hint: `n!` can be written as `n * (n - 1)!`. e.g. `3! = 3 * 2! = 3 * 2 * 1! = 6`
+
+    function factorial(n) {
+        if (n === 1) {
+            return 1;
+        }
+        return n * factorial(n - 1);
+    }
+
+Oh we can do ternary operators???? Ok
+
+    function factorial(n) {
+        return (n === 1) ? 1 : (n * factorial(n - 1))
+    }
+
+The basis of recursion is `1`. Making it 0 wouldn't change the outcome, but would add an extra step for no reason.
+
+**Fibonacci numbers**
+
+The sequence of Fibonacci has the formula F(small n) = F(small (n - 1)) + F(small (n - 2))
+
+In other words, the next number is a sum of the two preceding ones. Apparently the first 2 numbers are 1?
+
+    1, 1, 2, 3, 5, 8, 13...
+    (1 + 0),(1 + 0), (1 + 1), (2 + 1), (3 + 2), (5 + 3), (8 + 5)
+
+Write the function `fib(n)` that returns the `n`th Fibonacci number. Also the function should be fast??
+
+We know fibonacci is a set sequence.
+
+Each iteration needs to return the `n`th number
+
+What is the exit condition/ the end of the chain? We're working from n until 1, and adding the 2 previous numbers together
+
+My first solution:
+
+    function fib(n) {
+        return (n <= 1) ? Math.abs(n) : fib(n - 1) + fib(n - 2)
+    }
+
+Well I'm pretty sure this isn't going to be fast. But at least I did it.
+
+So this initial recursive solution is going to be really slow. `fib(77)` may hang for a bit of time. This is because the function makes many subcalls, re-evaluating the same values over and over.
+
+You can optimize this by remembering already-evaluated values: if a value of `fib(3)` is calculated once, we can reuse it in future computations.
+
+OR, you can give up recursion and use a different loop-based algorithm. This feels like it's defeating the purpose of this article but whatever.
+
+Instead of going from `n` to lower values, make a loop that starts from `1` and `2`, then gets `fib(3)` as their sum, then `fib(4)` as the sum of two previous values, then `fib(5)` etc... Until it gets to `n`. 
+
+Written out:
+
+    // a = fib(1), b = fib(2)
+    let a = 1, b = 1;
+
+    // c = fib(3) as their sum
+    let c = a + b
+
+Now, to get fib(4), let's shift the variables: `a = fib(2)`, `b = fib(3)`, `c = fib(4)`
+
+    a = b; // now a = fib(2)
+    b = c; // b = fib(3)
+    c = a + b; // c = fib(4)
+
+And so on, until `c = fib(n)`. This is much faster than recursion.
+
+    function fib(n) {
+        let a = 1
+        let b = 1
+
+        for (let i = 3; i <= n; i++) {
+            let c = a + b;
+            a = b;
+            b = c;
+        }
+
+        return b;
+    }
+
+The loop starts with `i = 3`, because the first and second sequence values are hard coded.
+
+This is called *[dynamic programming](https://en.wikipedia.org/wiki/Dynamic_programming) bottom-up*.
+
+**Output a single linked list**
+
+Let’s say we have a single-linked list (as described in the chapter Recursion and stack):
+
+    let list = {
+        value: 1,
+        next: {
+            value: 2,
+            next: {
+            value: 3,
+            next: {
+                value: 4,
+                next: null
+            }
+            }
+        }
+    };
+
+Write a function printList(list) that outputs list items one-by-one. Make two variants of the solution: using a loop and using recursion. What’s better: with recursion or without it?
+
+Loop:
+
+    function printList(list) {
+        Object.values(list).forEach(item => {
+            if (typeof item === 'object') {
+
+                Object.values(item).forEach(item => {
+                    if (typeof item === 'object') {
+
+                        Object.values(item).forEach(item => {
+                            if (typeof item === 'object') {
+                                
+                                Object.values(item).forEach(item => {
+                                    console.log(item)
+                                })
+
+                            } else {
+                                console.log(item)
+                            }
+                        })
+
+                    } else {
+                        console.log(item)
+                    }
+                })
+
+            } else {
+                console.log(item)
+            }
         })
     }
 
+Recursive:
+
+    function printList(list) {
+        console.log(list.value)
+        if (list.next) {
+            printList(list.next)
+        }
+    }
+
+**Output a single-linked list in the reverse order**
+
+Use the list from the previous task and output the list in the reverse order. Make 2 solutions: a loop and a recursion.
+
+Recursive:
+
+    function printListInReverse(list) {
+        // go to the lowest level first and work back up from there
+        if (list.next) {
+            printList(list.next)
+        }
+        console.log(list.value)
+    }
+
+    // this printed 2 3 4 1 gfkhgdkhgdkur
