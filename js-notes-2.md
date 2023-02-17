@@ -3463,3 +3463,30 @@ You also can't use `await` or `yield` within a `forEach()`.
 
 > `yield` is used to pause/resume a *generator* function
 
+## Array.prototype.reduce()
+
+Executes "reducer" callback function on each element in the array (in order), passing in the return value from the calculation on the *preceding* element. The final result of running this reducer is a SINGLE value.
+
+The second argument (optional) is an "initial value" that you can supply. Otherwise the element at index 0 is used as the initial value, and iteration starts from the NEXT element (index 1 instead of 0).
+
+> So, if you want the reducer to be run on ALL elements, supply an initial value. Otherwise, index 0 will be used as the initial value.
+
+### Syntax
+The accumulator is the result of all preceding executions of the reducer that have occurred so far.
+
+    const array = [1, 2, 3, 4]
+
+    const initialValue = 0;
+    const sumWithInitial = array.reduce(
+        (accumulator, currentValue) => accumulator + currentValue,
+        initialValue
+    );
+
+    console.log(sumWithInitial)
+
+Uses:
+
+    reduce((accumulator, currentValue) => { })
+    reduce((accumulator, currentValue, currentIndex) => { })
+    reduce((accumulator, currentValue, currentIndex, array) => { })
+
