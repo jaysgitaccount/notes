@@ -1,6 +1,6 @@
 # Computer Science Notes
 
-Notes for concepts that are not web-specific.
+Notes for concepts that are not web-specific. I will be solving all presented problems in JavaScript, but they (usually) aren't JavaScript specific.
 
 ## Debouncing
 If something is triggered multiple times in very short succession, but you don't actually need that thing to be triggered that many times (e.g. a callback while scrolling), you can debounce it to improve performance. That is, delaying when you can next trigger something either by time, or something else like a boolean switch.
@@ -716,11 +716,11 @@ Let’s say we have a single-linked list (as described in the chapter Recursion 
         next: {
             value: 2,
             next: {
-            value: 3,
-            next: {
-                value: 4,
-                next: null
-            }
+                value: 3,
+                next: {
+                    value: 4,
+                    next: null
+                }
             }
         }
     };
@@ -772,14 +772,141 @@ Recursive:
 
 Use the list from the previous task and output the list in the reverse order. Make 2 solutions: a loop and a recursion.
 
+    let list = {
+        value: 1,
+        next: {
+            value: 2,
+            next: {
+                value: 3,
+                next: {
+                    value: 4,
+                    next: null
+                }
+            }
+        }
+    };
+
+Loop: We can't explicitly go back, so we need to store the values in an array, then reverse for loop to print the values
+
+    function printListInReverse(list) {
+        let array = [];
+        let tmp = list;
+
+        while(tmp) {
+            array.push(tmp.value);
+            // Set tmp so we continue through levels
+            tmp = tmp.next;
+        }
+
+        for (let i = array.length - 1; i >= 0; i--) {
+            console.log(array[i])
+        }
+    }
+
 Recursive:
 
     function printListInReverse(list) {
         // go to the lowest level first and work back up from there
         if (list.next) {
-            printList(list.next)
+            printListInReverse(list.next)
         }
         console.log(list.value)
     }
 
     // this printed 2 3 4 1 gfkhgdkhgdkur
+
+    printListInReverse(list)
+        printList(list.next)
+            printList(list.next.next)
+                printList(list.next.next.next)
+                console.log("4")
+            console.log("3")
+        console.log("2")
+    console.log("1")
+
+## Recursion
+From [this video](https://youtu.be/mz6tAJMVmfM)
+
+Write a recursive function that uses the Collatz conjecture (positive integers only) to calculate how many steps you need to take to get back to 1:
+
+- if `n` is 1, return the number of steps.
+- if `n` is even, repeat this process on `n/2`
+- if `n` is odd, repeat this process on `3n + 1`
+
+Function that takes `n` and the number of steps that have occurred so far, default 0.
+If n = 1, return n
+If n is even (n % 2 === 0), pass n/2 into the next step
+If n is odd (n % 2 === 1), pass 3n+1 into the next step
+I
+
+    function getSteps(n, steps = 0) {
+        if (n === 1) {
+            return steps
+        } else if (n % 2 === 0) {
+            return getSteps(n / 2, steps + 1)
+        } else if (n % 2 === 1) {
+            return getSteps( (3 * n) + 1, steps + 1 )
+        }
+    }
+
+Oh, the video has a different way of doing it?
+
+    function collatz(n) {
+        if (n === 1) {
+            return 0
+        } else if ((n % 2) === 0) {
+            return 1 + collatz(n/2)
+        } else {
+            return 1 + collatz (3*n + 1)
+        }
+    }
+
+Interestingly, instead of defining a variable or storing the steps anywhere, each recursive call returns `1 +  ` the next subcall. So after all the subcalls are done, they would have all resolved to `0`, so EACH CALL that occurred in the stack would then return `1`, and back up the chain they would each add 1 until finally, in the original call, the total number of steps is returned. Very clever!
+
+#### Dynamic programming for overlapping subproblems
+
+For some problems, the branched recursion may end up re-evaluating the same sub-problem over and over, which is not efficient. e.g the Fibonacci problem I did. In these cases, it's better to identify and save the solutions to these overlapping subproblems (memoization). Followed to the limit, it leads to bottom-up divide-and-conquer algorithms like dynamic programming. 
+
+### [Recursion in JavaScript](https://www.codingame.com/playgrounds/5422/js-interview-prep-recursion)
+
+#### Question 1: Sum all numbers
+
+Write a function called `sumRange`. It will take a number and return the sum of all numbers from 1 up to the number passed in. (this question implies n >= 1)
+
+    function sumRange(n) {
+        if (n === 1) {
+            return 1
+        }
+        return n + sumRange(n - 1)
+    }
+
+(I used the neat trick I just learned about not having to store an extra variable!)
+
+#### Question 2: Power function
+
+Write a function called `power` which takes in a base and an exponent. If the exponent is 0, return 1.
+
+A power is basically base * base (repeated n times). 
+
+    16 ^ 2 = 16 * 16
+    2 ^ 3 = 2 * 2 * 2
+    base ^ 3 = (base * base) ^ 2
+
+    function power(base, exponent) {
+        // case 1: exit
+        if (exponent === 0) return 1
+
+        return base * power(base, exponent - 1)
+    }
+
+#### Question 3: Calculate factorial
+
+Write function that returns `factorial` of a number.
+
+    function factorial(n) {
+        if (n === 1) return n;
+
+        return n * factorial(n - 1)
+    }
+
+#### Question 4: Check all values in an array

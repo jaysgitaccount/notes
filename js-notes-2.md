@@ -3490,3 +3490,8 @@ Uses:
     reduce((accumulator, currentValue, currentIndex) => { })
     reduce((accumulator, currentValue, currentIndex, array) => { })
 
+## Switch vs If statements
+
+It seems that the performance differences between `if` and `switch` statements are more or less negligible. But, there are differences:
+- The expression to test is only evaluated once in a switch, while it's evaluated for each if. 
+- All browsers handle these 2 statements differently, just as all browsers can handle the same piece of code with different performance outcomes. So it's best
