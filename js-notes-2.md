@@ -3495,3 +3495,22 @@ Uses:
 It seems that the performance differences between `if` and `switch` statements are more or less negligible. But, there are differences:
 - The expression to test is only evaluated once in a switch, while it's evaluated for each if. 
 - All browsers handle these 2 statements differently, just as all browsers can handle the same piece of code with different performance outcomes. So it's best
+
+## Clone an array in JS (shallow copies)
+Arrays in JS are reference values, so copying using `=` like `const fakeSheeps = sheeps` will only copy the reference to the original array, and not the value of the array. They will occupy the same memory space basically. Changing `fakeSheeps` will change `sheeps`.
+
+A shallow copy means *only the first level is copied*. Deeper levels are **referenced**. 
+
+Most conventional ways of cloning arrays (equals `array[i] = sourceArray[i]`, spread `array = [...sourceArray]`, `Array.from()`, `Array.slice()`) will only create a shallow copy of the source array. That is, multi-dimensional arrays or array elements that are actually just references to data will not work as expected. If you change those, you'll have them change elsewhere too. 
+
+To **deep copy** an array OR object, you can do `JSON.parse(JSON.stringify(array))`, which will turn the array into a JSON string and then back into an array. This will create a deep copy, which you can safely alter at any level. However you'll be limited by all the quirks of JSON (array can't contain `undefined` or functions, as they will be converted to `null`). HOWEVER, this method is extremely slow and should not be used unless you absolutely have to.
+
+Note: multidimensional arrays don't actually exist in JS. Arrays/objects/functions/primitives can be inside other arrays. BUT, only primitives will be copied. For all others, the *references* to the object will be copied.
+
+To properly deep copy an object/array, you will have to manually copy each value via recursion, or use a third-party helper like Lodash `cloneDeep`.
+
+## Recursion
+
+Some more recursion woohoo! But in JS this time.
+
+### [Fibonacci](https://www.theodinproject.com/lessons/javascript-recursion)

@@ -910,3 +910,386 @@ Write function that returns `factorial` of a number.
     }
 
 #### Question 4: Check all values in an array
+
+Write function `all` which takes an array and a callback and returns true if every value in the array returns true when passed as a parameter to the callback.
+
+array.length === array.filter().length, if so, then return true, if not, return false
+
+    function all(array, callback) {
+        let filtered = array.filter(item => callback(item))
+
+        return array.length === filtered.length
+    }
+
+Ok I didn't do recursion but like. why would you. My answer is great.
+
+    function all(array, callback) {
+        let copy = copy || array.slice();
+
+        // exit case
+        if (array.length === 1) {
+            return callback(array[0]);
+        } else if (callback([0]) { // Test if true
+            copy.shift(); // If so, remove that element
+            return all(copy, callback); // Recursive call
+        } else {
+            return false; // Stop the chain
+        }
+    }
+
+#### Question 5: Product of an array
+
+`productOfArray` takes array of numbers and returns the product of all of them
+
+I assume array.shift is also in this one. I'd rather use pop tho. (Executing pop on the same line as the rest of the return statement works)
+
+    function productOfArray(array) {
+        if (array.length === 1) return array[0];
+
+        return array.pop() * productOfArray(array);
+    }
+
+#### Question 6: Search JS Object
+
+Write a function called `contains` that searches for a value in a nested object. It returns true if the object contains that value.
+
+    function contains(object, value) {
+        let values = Object.values(object);
+
+        if (values.includes(value)) return true
+
+        for (let i = 0; i < values.length; i++) {
+            if (typeof values[i] === 'object') {
+                return contains(values[i], value)
+            }
+        }
+
+        return false;
+    }
+
+Given solution:
+
+    function contains(object, value) {
+        for (let key in object) {
+            if (typeof object[key] === 'object') {
+                return contains(object[key], value)
+            } else if (object[key] === value) {
+                return true
+            }
+        }
+
+        return false;
+    }
+
+Some notes:
+- You can't return false in an else statement within the false loop, or it will prematurely exit.
+- I tested it with an additional level of object AFTER a value
+
+    const nestedObject = {
+        data: {
+            info: {
+                stuff: {
+                    thing: {
+                        moreStuff: {
+                            magicNumber: 44,
+                            something: {
+                                string: 'foo2'
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+- I think their solution was a bit better because I forgot that `for in` exists, which you can then incorporate into the if statement. However, I wonder if checking for the value at the start makes it more efficient, as in the last loop you don't have to iterate through every value to check.
+
+#### Question 7: Parse a multi-dimensional array
+
+Given a multi-dimensional integer array, return the total number of integers stored inside this array. I will use `Number.isInteger(num)` to check if a number is an integer or not, since that's what the question is asking.
+
+    let seven = [
+        [
+            [5], 3
+        ], 0, 2, ['foo'], [], 
+        [
+            4, [5, 6]
+        ]
+    ];
+
+    function totalIntegers(array) {
+        let count = 0;
+        array.forEach(item => {
+            if (Array.isArray(item)) {
+                count += totalIntegers(item)
+            } else if (Number.isInteger(item)) {
+                count += 1;
+            }
+        })
+        return count;
+    }
+
+Their given solution differed from mine in that they did not use a loop at all. They used `first = array.shift()` as the value to check within each function call.
+
+Other than that, it was fairly similar in structure.
+
+    function totalIntegers(array){
+        if(array.length === 0) return 0;
+
+        let total = 0;
+        let first = array.shift();
+
+        if (Array.isArray(first)){
+            total += totalIntegers(first); 
+        } else if (Number.isInteger(first)) {
+            total += 1;
+        }
+
+        return total + totalIntegers(array);
+    }
+
+In my answer, I decided not to explicitly state an exit condition as count would always be returned anyway, and if the `item` isn't an array, then subcalls are not continually added, so the chain would not be infinite.
+
+#### Question 8:
+Write a function that sums squares of numbers in list that may contain more lists
+
+Er, so I think I'm being asked to get every number in all nested arrays. Each number must be squared, THEN added up at the end. I'll try writing it more like the previous example.
+
+It's good practice to clone arrays when you're altering them, so I will.
+
+Store count = 0
+Firstly, clone array with `clone = array.slice()`
+Exit clause: if clone.length === 0, return 0
+If not, remove last element, clone.pop()
+Check if last element is array, if so, recursive call on it
+If last element is integer, square it (num * num), then return it
+After this, return count + recursive call with clone
+
+    function sumSquares(array) {
+        if (array.length === 0) return 0;
+
+        let count = 0;
+        let clone = array.slice();
+        let item = clone.pop();
+
+        if (Array.isArray(item)) {
+            count += sumSquares(item);
+        } else if (Number.isInteger(item)) {
+            count += (item * item)
+        }
+
+        return count += sumSquares(clone)
+    }
+
+I worry about the memory implications of me cloning `array` every time. But also nobody works directly on arrays anymore, you have to consider them immutable.
+Also the given solution used a for loop so, ok I guess
+
+#### Question 9:
+The function should return an array containing repetitions of the number argument. For instance, replicate(3, 5) should return [5,5,5]. If the times argument is negative, return an empty array.
+
+- Why would you ever do this recursively.
+- This function should always return an array, so now I have to work around this arbitrary requirement
+- If multiplier <= 0, return... nothing?? array???
+- Because of the recursive nature of this task, AND the need for it to return an array with each call, I have to return an array no matter what, then add each value in subcall arrays to the outer function's array and return that
+- So each call of this should result in [`number`], then call (multiplier - 1, number), add all the individual values of that result to this array, then return that???
+- steps:
+- create array.
+- exit clause, return empty array
+- if multiplier >= 1 (this is implied so i guess it always happens), array.push(number), once. 
+- THEN, if number > 1, we need to recursively call the function and add each individual value of the RESULTING array to this one's array.
+- I could concat the arrays though, that might be better
+- then return array.
+
+    function replicate (multiplier, number) {
+        if (multiplier <= 0) return [];
+
+        return [number].push(...replicate(multiplier - 1, number));
+    }
+
+Learnings from this:
+- The fastest way to merge 2 arrays, in JavaScript, is to do `array1.push(...array2)` (which will alter `array1`). This `...` is called **spread syntax**. This won't work if you have a large number of calls (over 10,000 I think), so you should have a decent idea of the largest number of elements you expect to move with this. The spread syntax loads the entire source array `array2` onto the call stack.
+- Otherwise, `let result = array1.concat(array2)` works (also, creates a new array & doesn't alter either existing array).
+- `...` can also be used to clone arrays `const cloneSheeps = [...sheeps]` BUT will only do a *shallow copy*. So changing `cloneSheeps` will affect `sheeps`.
+- You can automatically create an array containing `number` by just writing `[number]`!
+
+## Shallow copying arrays
+Arrays in JS are reference values, so copying using `=` like `const fakeSheeps = sheeps` will only copy the reference to the original array, and not the value of the array. They will occupy the same memory space basically. Changing `fakeSheeps` will change `sheeps`.
+
+A shallow copy means *only the first level is copied*. Deeper levels are **referenced**. 
+
+## Dynamic programming
+For a problem to be able to be solved via dynamic programming, there are two key attributes it must possess:
+- optimal substructure
+- overlapping sub-problems
+
+If a problem can be solved by combining optimal solutions to *non-overlapping* subproblems, then the strategy is "divide-and-conquer" (this is why merge-sort and quick-sort are not dynamic programming problems).
+
+### Optimal substructure
+The solution to a given optimization problem can be obtained by the combination of optimal solutions to its subproblems.
+
+## Merge Sort
+Sorting algorithms are a way to get to grips with recursion. One such algorithm is **Merge Sort**, a type of sort that lends itself to recursion and can be much faster than other algorithms like bubble sort on the right data sets.
+
+Keep in mind that merge sort is a "divide and conquer" algorithm.
+
+1. Divide the unsorted list into `n` sublists, each containing one element (a list of one element is considered sorted).
+2. Repeatedly merge sublists to produce new sorted sublists until there is only one sublist remaining. Ta-da, sorted list.
+
+### Video
+
+Notes from [this video](https://youtu.be/Ns7tGNbtvV4):
+
+Merge sort is basically: you have an array with 6 elements. Make them into 6 arrays with 1 element each. Now sort.
+
+Pseudocode:
+1. Sort the left half of the array (assuming n > 1)
+2. Sort the right half of the array (assuming n > 1)
+3. Merge the 2 halves
+
+Consider the array `[5, 2, 1, 3, 6, 4]`. First let's divide into 2 halves, so the left half is `5, 2, 1`. Then we halve this again, arbitrarily deciding that the left "half" will be the smaller half bc odd number of elements, so `5`. Now, single element arrays are already sorted. So the left half of the left half is sorted.
+
+Back to the right half of the left side, `2, 1`. Now, halve this again. The left half of this is `2`, which is sorted. Now the right half is `1`, also sorted woohoo.
+
+Now, we are getting to the 3rd step of merge sort. Consider the halves `2` and `1`. Which has the lower element? `1`, right, so in a new hypothetical array, put that in first, then put `2` after it.
+
+At this point, we have:
+
+               3, 6, 4
+    5, 1, 2
+
+In which, looking at the left side only (because recursion), both our left and right halves are sorted. NOW, we want to merge the 2 halves of the left side. We do this by comparing the **first** element of the left half and the **first** element of the right half, and *seeing which one is smaller*, making the smaller one the first part of our new sorted array. So, `5 > 1`, so now `1` is the first element of our new array. Then, is 5 or 2 lower? The answer is 2, so now the array is `1, 2`. Then, the only option left is 5, so now we have `[1, 2, 5]`.
+
+Now, we have done step 1 of the overall merge sort of this array.
+
+Split into halves: `3`, `6, 4`. 3 is already sorted. Divide `6, 4` into halves. Each half is already sorted because 1 element. So now merge: is 6 lower or 4 lower? 4, so put 4 in our new sub array. Then, 6. So now the right half of the overall array is `3, 4, 6`.
+
+So now, let's merge the left and right halves of the right side. Is 3 lower, or 4? 3, so put it into the hypothetical sorted array. Then, because there's nothing left to compare with 4, we know that everything on the right has to be bigger than everything on the left. So because we know that, we know that everything on the right side must go at once. 
+
+So now we are at step 3 of the overall process, as both sides are sorted:
+
+    1, 2, 5 | 3, 4, 6
+
+So now, let's ask ourselves which is lower: 1, or 3? It's 1, so add 1 to the new sorted array. NOW, compare the new "first" element of the left side to the first element of the right side: 2 or 3? It's 2, so put 2 in. Then, which is lower: 5, or 3? We add 3 to the new array.
+
+          5 |    4, 6
+    1, 2, 3
+
+So now 5 is the "first" element of the left side, and 4 is the "first" on the right. Which is lower, 4 or 5? Add 4 to the array. Then, compare 5 and 6, add 5. Then finally, add 6.
+
+So after breaking everything down into sub-arrays, we've sorted the array into `[1, 2, 3, 4, 5, 6]`.
+
+#### Why merge sort
+
+Worst case scenario:
+
+We have to split up `n` elements, then recombine them, effectively doubling the sorted subarrays as we build them up. (combining 1-element arrays into 2-element arrays, combining 2-element arrays into 4-element arrays etc.)
+
+Best case scenario:
+
+The area is already sorted, but we don't know this until we split it up and divide it. So we go through the process regardless.
+
+So we have `n` elements, and we might have to combine them `log(n)` times. In the worst case scenario, the runtime of merge sort will be `O(n log n)`, which is faster than `n squared`. The runtime is the same for the best case scenario.
+
+Comparing this to the runtime of other sort algorithms, bubble sort/insertion sort/selection sort, which all have a "worst case scenario" runtime of `n squared`.
+
+So on the average/worst case, merge sort will be faster than bubble sort (unless the array is already sorted), at the expense of taking up more memory, because we have to recombine/create new segments of memory.
+
+### [Other video](https://www.youtube.com/watch?v=uEbdK2CG_B8&feature=youtu.be&t=1h2m)
+
+Consider this, a recursive approach to searching for a name in a phone book:
+
+    0 pick up phone book
+    1 open to middle of phone book
+    2 look at names
+    3 if Smith is among names
+    4   call Mike
+    5 else if Smith is earlier in the book
+    6   search for Mike in left half of book (divide left half in half)
+    7 else if Smith is later in book
+    8   search for Mike in right half of book (divide right half in half)
+    9 else
+    10  quit
+
+Pseudocode:
+    On input of `n` elements
+        if n < 2 (if n = 1 or 2, in other words these are already sorted)
+            return
+        else
+            sort left half of elements
+            sort right half of elements
+            merge sorted halves
+
+I think the most important thing for me to keep in mind is the "merge" step. To do this, take the FIRST element of each side and compare them, then add the smallest/lowest/earliest element to the new sorted array. Then repeat this until one or both sides are empty. From the previous video: if one side is empty and the other side isn't, you can assume that everything on the remaining side is larger, so just move that whole side to the sorted array.
+
+So we have e.g. 8 elements -> 4 elements -> 2 elements -> 1 elements. The runtime of diving stuff in half is generally `log n`.
+
+Every time we merge sort, we have to work through each element `n` times (n being the length of the array). 
+
+- We did `log n` things
+- Every time we did that, we incurred `n` steps of merging
+- So `n` * `log n` will give you "Big O of n log n"???? `O(n log n)`
+
+
+
+### [Merge sort video 3](https://youtu.be/6pV2IF0fgKY?t=241)
+
+Apparently merge sorts can be performed irrespective of data structure so that's good to know.
+
+> **Big O or Theta**: apparently when people talk about "Big O", they mean "theta", `θ`, the Greek letter.
+
+So when you have 2 lists (irrespective of data structure), A and B, let's say that A has `m` number of elements, and B has `n` number of elements. The merged list C has `m + n` elements. The amount of time taken to move all the elements to the merged list are `θ(m + n)`. Apparently this `θ(m + n)` has become a notation for merging, as usually time is notated using `n` only.
+
+#### The algorithm for merge (A, B, m, n)
+
+Start with: 
+
+    i = 1, j = 1, k = 1
+
+    if (A[1] < B[1])
+    {
+        C[k++] = A[i++]
+    } else {
+        C[k++] = B[j++]
+    }
+
+Basically, if `A[i]` is smaller than `B[j]`, move `A[i]` to `C[k]` position. Then increment `i` and `k` (moving to the next "slots"). Likewise for `B[j] < A[i]`.
+
+Do this for as long as `i <= m` and `j <= n`.
+
+    while (i <= m && j <= n) {
+        if (A[1] < B[1])
+        {
+            C[k++] = A[i++]
+        } else {
+            C[k++] = B[j++]
+        }
+    }
+
+Once this completes, we know that either of the lists will have remaining elements (because it only runs while BOTH lists fulfill the condition). But, we don't know which list will have remaining elements.
+
+    // For copying elements up until one list empties
+    while (i <= m && j <= n) {
+        if (A[1] < B[1])
+        {
+            C[k++] = A[i++]
+        } else {
+            C[k++] = B[j++]
+        }
+    }
+
+    // If there are any remaining in A, copy to C
+    for (i <= m; i++) {
+        C[k++] = A[i]
+    }
+
+    // If there are any remaining in B, copy to C
+    for (j <= n; j++) {
+        C[k++] = B[j]
+    }
+
+#### What if more than 2 lists
+
+    A  B  C  D
+    4  3  8  2
+    6  5  10 4
+    12 9  16 18
+
