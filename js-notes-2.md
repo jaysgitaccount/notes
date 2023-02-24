@@ -3509,8 +3509,19 @@ Note: multidimensional arrays don't actually exist in JS. Arrays/objects/functio
 
 To properly deep copy an object/array, you will have to manually copy each value via recursion, or use a third-party helper like Lodash `cloneDeep`.
 
-## Recursion
+### Mutation
 
-Some more recursion woohoo! But in JS this time.
+You can tell if a method will mutate by whether or not it returns a new array or object. (I assume it returns an object if it will mutate).
 
-### [Fibonacci](https://www.theodinproject.com/lessons/javascript-recursion)
+Mutations can be "bad" because you're changing the original reference of an object/array. If you use the original reference, you'll get a new value.
+
+    const myObj = { key: "value" }
+    const newObj = myObj
+    newObj.key = "some other value"
+    console.log(myObj) // { key: "some other value" }
+
+You can avoid mutations by using `.slice(start, end)` (end is not included) instead of `.splice(start, deleteCount)` (number of elements you want to remove, inclusive of `start`). Slice returns a new array without mutating the original. Splice returns the new extracted array AND affects the original.
+
+## Merging duplicates in array of objects
+
+I found [this](https://stackoverflow.com/questions/72530675/merge-duplicates-in-array-of-objects-and-mutate-some-properties-javascript) while looking for some other info. It's a pretty specific case, but this kind of thinking seems useful.

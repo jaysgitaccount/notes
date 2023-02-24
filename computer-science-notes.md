@@ -2,6 +2,12 @@
 
 Notes for concepts that are not web-specific. I will be solving all presented problems in JavaScript, but they (usually) aren't JavaScript specific.
 
+- Superscript characters: ¹²³⁴⁵⁶⁷⁸⁹⁰
+- Subscript characters: ₀₁₂₃₄₅₆₇₈₉
+- Superscript small case letters: ᵃᵇᶜᵈᵉᶠᵍʰⁱʲᵏˡᵐⁿᵒᵖʳˢᵗᵘᵛʷˣʸᶻ
+- Subscript small case letters: ₐ ₑ ₕ ᵢ ⱼ ₖ ₗ ₘ ₙ ₒ ₚ ᵣ ₛ ₜ ᵤ ᵥ ₓ
+- Big O/Theta: Θ
+
 ## Debouncing
 If something is triggered multiple times in very short succession, but you don't actually need that thing to be triggered that many times (e.g. a callback while scrolling), you can debounce it to improve performance. That is, delaying when you can next trigger something either by time, or something else like a boolean switch.
 
@@ -1226,7 +1232,7 @@ Every time we merge sort, we have to work through each element `n` times (n bein
 
 - We did `log n` things
 - Every time we did that, we incurred `n` steps of merging
-- So `n` * `log n` will give you "Big O of n log n"???? `O(n log n)`
+- So `n` * `log n` will give you "Big O of n log n"???? `Θ(n log n)`
 
 
 
@@ -1234,7 +1240,7 @@ Every time we merge sort, we have to work through each element `n` times (n bein
 
 Apparently merge sorts can be performed irrespective of data structure so that's good to know.
 
-> **Big O or Theta**: apparently when people talk about "Big O", they mean "theta", `θ`, the Greek letter.
+> **Big O or Theta**: apparently when people talk about "Big O", they mean "theta", `Θ`, the Greek letter.
 
 So when you have 2 lists (irrespective of data structure), A and B, let's say that A has `m` number of elements, and B has `n` number of elements. The merged list C has `m + n` elements. The amount of time taken to move all the elements to the merged list are `θ(m + n)`. Apparently this `θ(m + n)` has become a notation for merging, as usually time is notated using `n` only.
 
@@ -1286,10 +1292,192 @@ Once this completes, we know that either of the lists will have remaining elemen
         C[k++] = B[j]
     }
 
-#### What if more than 2 lists
+#### What if more than 2 lists: m-way merging
+
+Where `m` is the number of lists you have.
 
     A  B  C  D
     4  3  8  2
     6  5  10 4
     12 9  16 18
+
+The way that you would do this is, of course, to split into halves until you get sorted lists. In this case, you can merge A/B and C/D right away as they are already sorted (although in a code setting you would be splitting these down to single-element arrays regardless). 
+
+#### The difference between "2-way merge sort" and "merge sort"
+
+2-way merge sort is an iterative process using loop. Merge sort is a recursive procedure.
+
+#### 2-way merge sort
+
+Consider the list: 9, 3, 7, 5, 6, 4, 8, 2.
+
+1. Assume each element is its own "list", with a single element (the base case)
+2. Compare first 2 lists & merge them. Repeat for each pair of lists:
+
+    9, 3, 7, 5, 6, 4, 8, 2
+
+    3, 9 | 5, 7 | 4, 6 | 2, 8
+
+Now we have 4 lists of 2 elements.
+
+Remember: when you merge, the result has to be kept in a separate array. So if the original list is A, we need a new array B to store the result. If you only want to have one array, you can copy the results from B to A... (that's what the guy in the video is saying)
+
+3. Merge again: second pass
+
+    3, 9 | 5, 7 | 4, 6 | 2, 8
+    3, 5, 7, 9 | 2, 4, 6, 8
+
+4. Third pass:
+
+    3, 5, 7, 9 | 2, 4, 6, 8
+    2, 3, 4, 5, 6, 7, 8, 9
+
+Then, you can copy this back to array A if you only want one array. I guess.
+
+Total number of work:
+
+    if number of elements in the list is n = 8,
+    We started with 8 separate lists of 1 element
+    First we did 8 / 2 to get 4 lists
+    Then we divided by 2 again to get 2 lists
+    Then we divided by 2 again to get 1 list.
+
+    8/2/2/2 = 1
+    8 / 2³ = 1
+    8 = 2³
+    log₂ 8 = 3, which means log of 80 gives 3
+    So we can know the number of passes done by taking log of n
+
+So, number of passes = log n
+
+In each pass, there are `n` merges (each individual number being moved to new array). And in total we are doing `log n` passes.
+
+So the total time taken is Θ(n log n).
+
+## Common Data Structures & Algorithms
+
+The point of a data structure is to store data in a way that meets the needs of your particular application. e.g. storing things in one giant array would be incredibly inefficient when you wanted to locate a specific value.
+
+Each data structure type has its own tradeoffs, and are differentiated by how long it takes to first populate the structure, how long it takes to find/add elements, and how large it is in memory.
+
+Sorting algorithms are pretty common (searching through large batches of data seems like a common problem to encounter). Another use for algorithms is search, where milliseconds count. When you're searching through very large troves of data, the quality of your search algorithm is important. Traversing a data tree looking for a particular element is a common occurrence in data intensive applications.
+
+Luckily, these problems have all been solved for us multiple times in the past. All we need to do is understand *how* they are solved, so we can take this knowledge and apply it to similar problems that we encounter.
+
+Some types of algorithms:
+- Linear search: starting from the top, look through every single entry and compare to what we're looking for.
+- Chunking search: moving at arbitrary increments (e.g. 100 pages/200 pages/75 pages), open pages of a phone book to see if you're getting closer to finding what you're looking for. This is a human behaviour and is not efficient.
+- Binary search: split book in half, determine which half of the phone book the entry is in, split in half again, etc. This is very scalable: with a 400 page book, it may take you about 8 passes. With a 4 million page book, it would take at most 22 passes.
+
+The number of passes you need to make when doing binary search can be calculated by `log₂(n)`. With a 400-page book:
+
+    log₂(400) = 8.64...
+
+So in the worst case, rounding up, it would take you about 9 passes. How about 4 million?
+
+    log₂(4000000) = 21.93...
+
+At most, 22.
+
+With a 4 million page book, the worst case scenario when using a linear approach would take 4 million passes. With the halving approach, it would only take 22!
+
+Learning algorithms is learning how to break problems down in the manner outlined here: break them down into different steps, where there is exactly one behaviour that someone could take given a scenario. Understanding a process is harder than putting it into code.
+
+### Tricks for the tool belt
+Knowing the right trick for the right scenario (e.g. binary search vs linear search) can save you a lot of time and troubleshooting.
+
+Some useful algorithms to learn:
+- depth-first search
+- breadth-first search
+- writing sorting algorithms
+
+First you must understand how they work intuitively. Then, translate them into code.
+
+### Data structures
+
+In order to implement some algorithms, you need additional tools in your belt. e.g. to do the breadth-first search algorithm, you need to understand **queues**. If you don't understand the various data structures, you're missing essential tools and will have a bad time.
+
+Let's talk about queues. Think about a ticket system at a deli. You pull a number and wait for your number to be called, i.e. joining the "line". This is called **enqueuing**, when you "start waiting".
+
+When it's your turn to be served (and you'd have been in line the longest at this point), your number will be called and you won't be in the queue anymore. This is called **dequeuing**.
+
+You can implement a queue with an array and 2 simple methods (array.push and array.shift).
+
+square root of c c = square root of a squared + b squared
+
+## Some more algorithms
+
+Integer multiplication:
+
+    Input: 2 n-digit numbers, x and y
+    Output: product of x * y
+    The primitive operation: add or multiply 2 single digit numbers
+    
+    The number of primitive operations needed to multiply 2 4-digit integers: n * n, or n²
+
+If you want to be a good algorithm designer, you should always be asking: **can we do better?** As in, can you do better than the "obvious"/naive solution. Let's apply this to the multiplication.
+
+### Recursive algorithm
+
+    Write x = 10^(n/2) * (a + b) and y = 10^(n/2) * (c + d)
+    Where a, b, c, d are all (n/2)-digit numbers
+    e.g. a = 56, b = 78, c = 12, d = 34
+    Then x*y = (10^(n/2)*(a + b)) * (10^(n/2) * (c + d))
+             = 10ⁿac + 10^(n/2) * (ad + bc) + bd (let's call this expression *)
+    
+    Idea: recursively compute ac, ad, bc, bd from the * expression. Evaluate each individual expression, then simply add them up.
+
+### Karatsuba Multiplication
+
+An algorithm for multiplication of integers.
+
+In `10ⁿac + 10^(n/2) * (ad + bc) + bd`, we only care about ac, ad, bc, bd as their sum, not as individual values. Thus, can we perform only 3 recursive calls instead of 4, evaluating `ad + bc`. 
+
+1. Recursively compute ac
+2. Recursively compute bd
+3. Recursively compute `(a+b)(c+d)`, which can be written as `ac + bd + ad + bc`
+The trick: the result of the third recursive call, `3 - 1 - 2`: in line 3, `ac` and `bd` cancel out the `ac` and `bd` from the 1st and 2nd recursive calls.
+
+So the result of the 3rd call minus the result of the 1st and 2nd call = `ad + bc`.
+
+So I guess this means you can multiply using only 3 calls instead of 4. I'm not sure what the point of this was.
+
+## [Binary Search](https://youtu.be/T98PIp4omUA)
+
+Binary search requires that a special condition be met beforehand. But, if it is, it's way more efficient than linear search. It is a "divide and conquer" algorithm, where you reduce the search area by half with each pass. In order to do so, the data MUST be sorted, otherwise it's a mess and you can't just discard half the elements. But if the data IS sorted, then you know that everything to the left of where you are is lower than your current position, and everything to the right is greater.
+
+Pseudocode:
+- Repeat until the (sub)array is of size 0:
+    1. Calculate the middle point of the current array.
+    2. If the target is at the middle, stop.
+    3. Otherwise, if the target is less than what's at the middle, repeat, changing the end point to be just to the left of the middle.
+    4. Otherwise, if the target is greater than what's at the middle, repeat, changing the end point to be just to the right of the middle.
+
+### Example
+
+Consider this sorted array: 6 7 8 9 10 11 14 15 17 19 22 23 25 28 30. The length is 14, the target is 19.
+
+Let's first calculate the midpoint value: `(0 + 14)/2` = 7, which is the element `15`. 15 !== 19, but 19 > 15, so we can change the start point to `array[8]`, and the endpoint is still `array[14]`. New endpoint: `(8 + 14)/2 = 11`, which is the element `23`. 19 < 23, so now we eliminate everything to the RIGHT of array[11]. 
+
+Our start point is `array[8]` and our end point is now `array[10]` (all that's left is 17, 19, 22).
+
+New midpoint: `8 + 10 = 18`, `18/2 = 9`. array[9] === 19, yay.
+
+### What if the target is NOT within the array?
+
+If we look for `16` instead.
+
+Midpoint = (0 + 14)/2 = 7 = element `15`. 16 > 15, so eliminate the left side of the array.
+
+New start point: 8. (8 + 14)/2 = 11 - `23`. 16 < 23, eliminate right side of the array.
+
+At some point you'll end up with start = 8, and end = 7. Obviously, you can't do that! But you've already eliminated everything else in the array.
+
+This is actually the situation of having a subarray with size 0. If you reach that, you know your target isn't in this array.
+
+### Runtime
+
+Worst case: divide a list of `n` elements in half repeatedly to find the target element, either because it will be found at the end of the last division, or it doesn't exist at all. This is `θ(log n)` times.
+
+Best case: `Ω(n)` times, as in, you'll find the target right at your first midpoint. e.g. in the above example, if target was `15`.
 
