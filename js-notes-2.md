@@ -3525,3 +3525,200 @@ You can avoid mutations by using `.slice(start, end)` (end is not included) inst
 ## Merging duplicates in array of objects
 
 I found [this](https://stackoverflow.com/questions/72530675/merge-duplicates-in-array-of-objects-and-mutate-some-properties-javascript) while looking for some other info. It's a pretty specific case, but this kind of thinking seems useful.
+
+## Pure Functions
+
+An essential part of writing JS, for functional programming, reliable concurrency, and React+Redux. 
+
+Functions can serve the following purposes:
+
+- Mapping: produce some output based on given inputs. A function **maps** input values to output values.
+- Procedures: A function may be called to perform a sequence of steps. This sequence is known as a procedure (programming in this style is called procedural programming)
+- I/O: Some functions exist to communicate with other parts of the system, such as the screen, storage, system logs, or network.
+
+A **pure function**:
+
+- Given the same input, always returns the same output.
+- Produces no side effects.
+
+A side effect would be if a function that returns double of the number you pass in ALSO writes to the disk or logs to the console. Let's take `double(x)`, where `double(2)` returns `4`. If this function was pure, you could replace any instance of `4` with `double(2)`. BUT, if `double(2)` saved the value to disk, you could NOT simply replace `double(2)` with `4` without changing the meaning.
+
+If you want referential transparency, you need to use pure functions.
+
+> A giveaway that a function is impure is if it makes sense to call it WITHOUT using its return value. For pure functions you don't want that.
+
+It's highly recommended to use pure functions above other options if practical. 
+
+- They are the simplest building blocks of a program.
+- Follows KISS: Keep It Simple, Stupid
+- They are completely independent of outside state, and thus are immune to classes of bugs that have to do with shared mutable state.
+- Their independent nature makes them great candidates for parallel processing across many CPUs/entire distributed computing clusters, which makes them essential for many resource-intensive computing tasks.
+
+e.g. In the case of users typing in a search bar for a music web player, the user typed faster than the API autocomplete search response. So, race conditions would be triggered, where newer suggestions would be overwritten by outdated search suggestions, because each AJAX success handler was given access to directly update the suggestion list displayed to users. Thus, the SLOWEST AJAX request would always blindly overwrite the results, even when the replaced results might have been newer/better.
+
+To fix this issue, create a suggestion manager - the single source of truth that controls the state of the query suggestions. It's aware of a currently pending AJAX request, and when the user types something new, the current pending request is cancelled before a new request is issued, so only a single response handler at a time would ever be able to trigger a UI state update.
+
+Any async/concurrent operation could trigger race conditions, which happen if output is dependent on the sequence of uncontrollable events (network, device latency, user input, etc). If you're using shared state and that state is reliant on sequences which vary depending on indeterministic factors, then the output is essentially impossible to predict = impossible to test or understand properly.
+
+It's important to note that pure functions DO NOT alter any existing data. They take input and return new output WITHOUT mutating the original input. e.g. take in a shopping cart, create a copy, push an item/quantity to the copy, RETURN the new cart.
+
+Importantly, pure functions are readable, testable, **maintainable** code. 
+
+## console.log
+
+5 tips for using `console.log` better.
+
+1. Use object shorthand in `console.log` to gather information better.
+
+    const name = "fish"
+    const age = 23
+    const job = "developer"
+    const hobbies = "reading"
+
+    console.log({ name, age, job, hobbies })
+
+This will output an easily-read object with corresponding key/value pairs.
+
+You can also customize the console output using CSS!
+
+    console.log('hello %cmy friend', 'color: blue; font-size: 30px')
+
+2. `console.warn()` has a special yellow colour flag to make things stand out!
+
+3. `console.error()` can be used to print HTTP request errors instead of `console.log`. It has a special red flag AND prints out the stack of function calls.
+
+4. `console.time()` & `console.timeEnd()`:
+
+You can get the execution time of a piece of code by calculating the 2 time intervals, like so:
+
+    let startTime = Date.now()
+    let count = 0
+
+    for(let i = 0; i < 1000000000; i++) {
+        count++
+    }
+
+    console.log(Date.now() - startTime)
+
+BUT, you can do this instead.
+
+    let count = 0
+
+    console.time()
+
+    for(let i = 0; i < 1000000000; i++) {
+        count++
+    }
+
+    console.timeEnd()
+
+You can also count multiple pieces of code at once by giving it a flag!
+
+    let count = 0
+
+    console.time('time1')
+
+    for(let i = 0; i < 1000000000; i++) {
+        count++
+    }
+
+    console.timeEnd('time1')
+
+    console.time('time2')
+
+    for(let i = 0; i < 1000000000; i++) {
+        count++
+    }
+
+    console.timeEnd('time2')
+
+5. `console.table()` can be used to print out object data into a nice and organised table instead of the raw object format.
+
+## Promise methods
+
+### Promise.all()
+
+- Takes an iterable of promises as an input, and returns a single Promise that resolves to an array of the results of the input promises.
+
+- This returned promise will fulfill when all of the input's promises have fulfilled, or if the input iterable contains no promises.
+
+- It rejects immediately upon any of the input promises rejecting, or non-promises throwing an error, and will reject with this first rejection message/error.
+
+### Promise.resolve()
+
+`Promise.resolve()` "resolves" a given value to a Promise. If the value is a Promise, that promise is returned. If the value is a thenable, `Promise.resolve()` will call the `then()` method with 2 callbacks prepared; otherwise, the returned promise will be fulfilled with the value.
+
+Writing the behaviour of Promise.resolve from scratch:
+
+    Promise.myResolve() = function (value) {
+        // If value is a Promise, return it directly
+        if (value && typeof value === 'object' && (value instanceof Promise)) {
+            return value
+        }
+
+        // Otherwise, all other cases are wrapped again by a Promise
+        return new Promise((resolve) => {
+            resolve(value)
+        })
+    }
+
+### Promise.reject()
+Returns a Promise object that was rejected with a given reason.
+
+### Promise.race()
+Takes an iterable of promises, and fulfills or rejects AS SOON AS one of the promises in the iterable fulufills or rejects.
+
+### Promise.allSettled()
+
+If you have an iterable of promises, and you want to know the results of all of them, use this. It takes an iterable of Promises and returns an array of objects that each describe the outcome of each Promise.
+
+It can be used when you have multiple async tasks that are not dependent on one another to complete successfully.
+
+## Reducers
+
+Array.reduce is commonly used to iterate a list, applying a function to an accumulated value along the way, then returning the singular result. But, it has many uses actually! It's important to understand reduce when working with datasets.
+
+How to use:
+
+    array.reduce(
+        reducer: (accumulator: Any, current: Any) => Any,
+        initialValue: Any
+    ) => accumulator: any
+
+Rewriting this bc I got confused:
+
+    array.reduce(
+        reducer: (accumulator, current) => reducer function ,
+        initialValue
+    ) => accumulator: any
+
+Let's sum an array:
+
+    [2, 4, 6].reduce((acc, n) => acc + n, 0) // 12
+
+    [2, 4, 6].reduce(
+        (acc, n) => acc + n,
+        0
+    )
+
+The job of the reducer is to "fold" the current value into the accumulated value, via the reducer function. The reducer returns the new accumulated value, and `reduce()` moves on to the next value in the array.
+
+Note: if an initial value is not supplied, the initial value used is the first array element. Meaning, the reducer function starts at the second array element.
+
+In the above, we passed in an anonymous reducing function, but we can abstract it and name it:
+
+    const summingReducer = (acc, n) => acc + n;
+
+    [2, 4, 6].reduce(summingReducer, 0); // 12
+
+By the way. JS also has `.reduceRight()`, which works right to left; as in, in the above, the first iteration would use `6` as `n`, then `4`, then `2`.
+
+### Reduce is versatile
+
+You can define `map()`, `filter()`, `forEach()` and other things using reduce.
+
+Map:
+
+    const map = (fn, arr) => arr.reduce((acc, item, index, arr) => {
+        return acc.concat(fn(item, index, arr));
+    }, []);

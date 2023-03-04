@@ -6,7 +6,7 @@ Notes for concepts that are not web-specific. I will be solving all presented pr
 - Subscript characters: ₀₁₂₃₄₅₆₇₈₉
 - Superscript small case letters: ᵃᵇᶜᵈᵉᶠᵍʰⁱʲᵏˡᵐⁿᵒᵖʳˢᵗᵘᵛʷˣʸᶻ
 - Subscript small case letters: ₐ ₑ ₕ ᵢ ⱼ ₖ ₗ ₘ ₙ ₒ ₚ ᵣ ₛ ₜ ᵤ ᵥ ₓ
-- Big O/Theta: Θ
+- Big O: Theta: Θ, Omega: Ω
 
 ## Debouncing
 If something is triggered multiple times in very short succession, but you don't actually need that thing to be triggered that many times (e.g. a callback while scrolling), you can debounce it to improve performance. That is, delaying when you can next trigger something either by time, or something else like a boolean switch.
@@ -422,6 +422,8 @@ This is a recursive definition.
 ## Linked List
 
 Let's cover a data structure that may be a better alternative for arrays in some cases: **linked lists**.
+
+A linked list is a *linear collection of data elements* of any type (called *nodes*), where each node has a value, and a property that points to the next node in the linked list.
 
 Let's say we want to store an ordered list of objects. The natural choice would be an array:
 
@@ -1234,8 +1236,6 @@ Every time we merge sort, we have to work through each element `n` times (n bein
 - Every time we did that, we incurred `n` steps of merging
 - So `n` * `log n` will give you "Big O of n log n"???? `Θ(n log n)`
 
-
-
 ### [Merge sort video 3](https://youtu.be/6pV2IF0fgKY?t=241)
 
 Apparently merge sorts can be performed irrespective of data structure so that's good to know.
@@ -1480,4 +1480,612 @@ This is actually the situation of having a subarray with size 0. If you reach th
 Worst case: divide a list of `n` elements in half repeatedly to find the target element, either because it will be found at the end of the last division, or it doesn't exist at all. This is `θ(log n)` times.
 
 Best case: `Ω(n)` times, as in, you'll find the target right at your first midpoint. e.g. in the above example, if target was `15`.
+
+**Note**: In terms of "Big O notation", omega `Ω` means baseline/"best case scenario" (hence the line being at the bottom of the O). Theta `Θ` means "average case", hence the line in the middle. And "Big O" means "worst case"/max possible runtime, represented just by O I think? There's no O symbol with a line at the top. (This is from my understanding of Big O from a stack overflow post I read).
+
+## Stacks and queues
+
+Data structures can dramatically affect the performance of a program. It's important to pick the right one for the use case. 2 basic ones are stacks and queues
+
+### Stacks
+
+Much like an irl stack of books, stacks are "first in, last out". You can only add or remove things at the **top** of a stack (pushing/popping from the top of a stack). 
+
+- Elements are sorted by insertion order.
+- Last element you put in is the first one to come out
+- They have NO index
+- Can only add to and remove from top.
+
+    3 <- Add & remove
+    2
+    1
+
+Think of an undo button. The activities are stored in a stack. Pressing the undo button undoes the MOST RECENT action.
+
+### Queues
+
+Much like a line at a movie theatre or a deli. A queue is "first in, first out".
+
+- Elements are sorted by insertion order
+- First element in is first out
+- They have NO index
+- Can only add to back and remove from front ()
+
+    remove            add
+    <---  1   2   3   <---
+
+Queues are useful in contexts where you **manage resources**. e.g. a print queue, like people in an office sending jobs to a printer: the first person to send ajob is the first person to have their job done.
+
+## Constructing a Binary Search Tree
+
+How to take an array and construct a binary search tree based on the elements of that array:
+
+    [5, 7, 1, 15, 9, 2, 14, 8, 7, 3]
+
+We have to work through the elements of the array in order. So our first element will be 5, which will be our root node. Then the next element is 7. 7 is greater than 5, so 7 will be placed on the next level, to the right of 5.
+
+Then our next element is 1, which is less than 5. So it will be placed on the next level of 5 to the left.
+
+                5
+              /    \
+            1       7
+
+Next is 15. 15 > 5 (go right), AND 15 > 7 (go right again). So put it as a child of 7, to the right.
+
+Next is 9. 9 > 5, 9 > 7, 9 < 15. So, progressing down a level at each comparison, 9 will be the left child of 15.
+
+                5
+              /    \
+            1       7
+                      \
+                        15
+                      /
+                    9
+
+**NOTE**: Apparently, this behaviour differs from other data structures like "red black trees" which are more self-balancing. A red-black tree would have rearranged elements (differently from binary trees, which is why people created red black trees).
+
+However, this is just a binary search tree so we add the elements to the tree in order, regardless of how imbalanced it will get.
+
+Anyway, the next element 2 is smaller than 5 and greater than 1. So it will be the right child of 1. Then, 14 > 5, 14 > 7, 14 < 15, 14 > 9. Also, I've added 8.
+
+We have another 7 in the array! What happens is: 7 > 5, 7 = 7. BUT, because **7 is NOT less than 7**, we treat it as 7 >= 7, so we keep going down a level to the right.
+
+                5
+              /    \
+            1       7
+              \       \
+                2       15
+                 \    /
+                  3  9
+                    /  \
+                  8      14
+                /
+              7
+
+So, it's important to know that you can have 2 nodes of equivalent value in a binary search tree in totally different positions.
+
+If you were to search for 8 in this tree, you would be checking if each node was greater or less than 8, then going right or left respectively, until you eventually found 8.
+
+## Binary Tree Traversal
+
+Example of a binary tree data structure:
+
+            F
+          /   \
+        D       J
+      /   \   /   \
+    B      E G     K
+              \
+               I
+              /
+             H
+
+Unlike an array or linked list, a binary tree is NOT linear. 
+
+e.g. If you start at the root node F, you can go either left to D or right to J. If you go in one direction, you'll have to somehow come back to F to go in the other direction.
+
+Tree traversal: **the process of visiting each node in the tree exactly once in some order**; where "visit" means *read/process data in a node*.
+
+Based on the order in which nodes are visited, tree traversal algorithms can be classified into 2 categories:
+- breadth-first
+- depth-first
+
+These are also general techniques to traverse a data structure called *graphs*. But at the moment we're talking about these in the context of trees.
+
+### Breadth-first
+
+Where you traverse all the nodes at one level before moving on to the next. e.g. F is at level 0, or depth 0. etc
+
+            F           L-0 (level 0)
+          /   \         
+        D       J       L-1 (level 1)
+      /   \   /   \
+    B      E G     K    L-2
+              \
+               I
+              /
+             H
+
+So we visit F first, then D, then J. Then, B, E, G, K. etc This kind of breadth-first traversal in trees is called **level order traversal**.
+
+In breadth-first approach, when you visit a node, you first *visit all its children* before visiting any of its grandchildren. (See the next section for expanded notes on level-order traversal)
+
+### Depth-first
+
+In depth-first approach, when you visit a child, you completely visit the subtree of the child before going to the next child.
+
+From the above tree, if we started at F, then we would first go to D, then we would visit B and E (finishing the left subtree) before moving on to J. In other words, finish all of F's grandchildren along this path before going to the right of F.
+
+Also, in depth-first, the order in which you visit the root, left subtree and right subtree can be different. It's possible to, for example, visit the right subtree, then the root, then the left subtree, OR the root -> left -> right. The relative order can be different, but the CORE IDEA is that visiting a child means you will also visit all children of that subtree/path.
+
+There are 3 popular ways of doing depth-first:
+- **Preorder** traversal - first visit `<root>`, then `<left>` subtree, then `<right>` subtree
+- **Inorder** traversal - `<left>` -> `<root>` -> `<right>`
+- **Postorder** traversal - `<left>` -> `<right>` -> `<root>`
+
+In total, there are 6 possible permutations for these variations, but conventionally, the left subtree is always visited before the right subtree.
+
+So, only the position of `root` in the order changes: if it's before left and right, it's preorder. If it's in between left and right, it's inorder. If it's after both left and right, it's postorder.
+
+#### Algorithm
+
+If visiting the root is `D` (data), visiting the left subtree is `L` (left) and visiting the right subtree is `R` (right):
+
+- Preorder: DLR
+- Inorder: LDR
+- Postorder: LRD
+
+Keep in mind that these letters refer to the ORDER OF ACTIONS we perform on each node.
+
+So, in the tree we have here:
+
+                F
+              /   \
+            D       J
+          /   \   /   \
+        B      E G     K
+      /   \       \
+     A     C        I
+                  /
+                H
+
+##### Preorder
+
+Using Preorder traversal (DLR), we first visit F. Using DLR, we first read the data of F (D). Then, we proceed to the left subtree of F (so F's current status is DL).
+
+Then, we visit D (DL). Then B (DL). Then A (DL).
+
+NOW, we are done with the LEFT subtree of B (left and right of A is null). So we go to the RIGHT subtree of B (now DLR), which is C (D).
+
+After we visit C (DL), then we visit E (DLR), because we are done with the left subtree of D, so we need to do the right subtree. 
+
+After this is done, F's current status is DLR.
+
+Then, we visit J, G, I, H. Then K.
+
+We're following along with the preorder traversal manually, but you can see the problem being reduced in a recursive order: when you visit a node, check if it has a subtree. If it does, visit the next node in that subtree. Keep going until there's no left subtree and no right subtree.
+
+##### Inorder
+
+Using LDR:
+
+We start at the root F, but first we go left (we don't visit the root node).
+
+We first finish the subtree: D, B, A. Along the way, we do not read any data (D). We just go left until we hit A, because A is the end of the left subtree. **Then** we read A's data. Then, we go to A's right subtree, but A doesn't have one. So now A is done.
+
+                F (L)
+              /   \
+        (L)  D       J
+          /   \   /   \
+    (L)  B     E G     K
+      /   \       \
+     A     C        I
+    (LDR)         /
+                H
+
+Now we head back to B and read the data, then go right, which is C. C has no subtrees so its status is LDR after we finish with it.
+
+                F (L)
+              /   \
+        (L)  D       J
+          /   \   /   \
+    (LDR)B     E G     K
+      /   \       \
+     A     C        I
+    (LDR) (LDR)   /
+                H
+
+Then, go back to D. Read D's data (LD). Then, go to the right of D (LDR), which is E. E will also be LDR after we visit it because it has no children.
+
+                F (L)
+              /   \
+        (LDR)D       J
+          /   \   /   \
+    (LDR)B     E G     K
+      /   \  (LDR) \
+     A     C        I
+    (LDR) (LDR)   /
+                H
+
+At this stage, we've done the entire left subtree of F. So we head back to F, read the data (LD), then proceed to its right subtree (LDR), which is J.
+
+                F (LDR)
+              /   \
+        (LDR)D       J
+          /   \   /   \
+    (LDR)B     E G     K
+      /   \  (LDR) \
+     A     C        I
+    (LDR) (LDR)   /
+                H
+
+And so on. If we were printing the name of each node along the way (as the D step), we would end up with
+
+    A B C D E F G H I J K
+
+Remember, the tree that we're looking at is a binary search tree (data structure). So for each node, the value of nodes on the left have a lesser value, and the nodes on the right have a greater value.
+
+When we're printing the nodes using inorder traversal (LDR), which is printing the left subtree, then the current node, then the right subtree, then we would actually end up with a **sorted list** of all the data we've traversed.
+
+So, if you need to get a sorted list out of a binary tree, use inorder(LDR) traversal.
+
+## Level-Order Traversal
+
+                F
+              /   \
+            D       J
+          /   \   /   \
+        B      E G     K
+      /   \       \
+     A     C        I
+                  /
+                H
+
+Starting at root F (level 0), visit nodes from left to right, then go down a level. Repeat. So the order in this tree would be F D J B E G K A C I H.
+
+How would you do this in a program? Unlike linked list, you can't just start with one pointer and keep moving it. Moving F -> D, you can't go to J, because there's no edge between those 2 nodes. Also, you can't necessarily go back up to F either.
+
+What you CAN do is, as you visit a node, you keep a reference to it in a queue (data structure), so you can visit it later. Let's refer to a node in the queue as a "discovered node", as in its address is known to you but you haven't visited it yet.
+
+For example's sake, let's say the address of the node F is 400 (and other 3 digit numbers are assigned to the other nodes).
+
+At the start, F is our only discovered node. As long as the queue is not empty, we can take out a node from the front, visit it (e.g. print its address), and then add its children to the queue.
+
+So when we're at F, we visit it, then add its children D (200) and J (100) to the queue. So now F is "visited" and we have 2 "discovered" nodes in the queue.
+
+Once again, take out the node at the front of the queue (dequeue), visit it, then enqueue its children.
+
+Keep in mind the FIFO nature of a queue: we enqueue the children of F, then visit its first queued child, then enqueue the children of that child node. Then the next thing in our queue will be the OTHER child node of F. Following this, we naturally end up visiting all nodes on one level before we visit any on the next level.
+
+Please note that the storage of data in the queue has a memory cost associated with it, as well as the usual costs of recursion.
+
+### Algorithm
+
+The video guy wrote this in C++ which I won't. Keep in mind that:
+- This is translated from C++ and there weren't 1:1 equivalents for everything in the example
+- There are probably more efficient ways to do a queue but I'm assuming the queue is an array for this example
+
+    function traverseLevelOrder(root) {
+        if (root === null) return;
+        
+        // create queue
+        let queue = [];
+
+        // push root to the queue
+        queue.push(root);
+
+        // while loop for when queue isn't empty
+        while (queue.length > 0) {
+            // Get first element from queue
+            let current = queue[0];
+            
+            // Process the data
+            console.log(current.data)
+
+            if (current.left !== null) queue.push(current.left)
+            if (current.right !== null) queue.push(current.right)
+
+            // remove current (aka first element) from queue
+            queue.shift();
+        }
+    }
+
+#### Time/space complexity of level-order traversal
+
+If there are `n` nodes in a tree and one visit to a node is reading the data & inserting its children in the queue, then one visit to one node = constant time and each node will be visited exactly once.
+
+Time taken will be proportional to the number of nodes. In other words, time complexity is `O(n)`, regardless of the shape of the tree.
+
+Space complexity: rate of growth of extra memory used with input size. In this example, we are not using a constant amount of extra memory; we have a queue that will grow and shrink as execution occurs.
+
+Assuming the queue is dynamic, maximum amount of extra memory used depends on maximum number of elements in the queue at any time.
+
+For a tree where each node only has one child - essentially linear - we will have maximum one element in the queue at any time. So, the space complexity in this, which is the best case scenario = `O(1)` (Big O of 1). 
+
+For a perfect binary tree (each node has 2 children for all levels of the tree, aka the tree is fully "filled" with children), you will have `n/2` nodes at the deepest level. So, extra memory used is proportional to `n` (number of nodes total). In this, the worst case scenario (and also the average scenario), the space complexity = `O(n)`.
+
+### To summarise binary tree algorithms
+
+There are 2 categories of algorithms for binary-tree traversal:
+
+- Breadth-first
+    - Level-order
+- Depth-first
+    - Preorder
+    - Inorder
+    - Postorder
+
+Visualise the tree [like so](https://youtu.be/gm8DUJJhmY4?t=286), where each node is actually 3 "cells":
+
+    _______________________________________________________
+    |address of left child | data | address of right child|
+    |_____________________________________________________|
+
+Preorder (C++ by the way):
+
+    struct Node {
+        char data;
+        Node *left;
+        Node *right;
+    }
+
+    function Preorder(root) {
+        if (root == NULL) return;
+        printf("%c ", root->data);
+        Preorder(root->left);
+        Preorder(root->right);
+    }
+
+In JS, I think this is:
+
+    // Assume node is an object kind of like
+    const node = {
+        data: 5,
+        left: {
+            // left child
+        },
+        right: {
+            // right child
+        }
+    }
+
+    function Preorder(root) {
+        if (root === null) return;
+
+        // process data
+        console.log(root.data);
+
+        Preorder(root.left);
+        Preorder(root.right);
+    }
+
+Space complexity (in regards to call stack occupation) = `O(h)`, where `h` = the height of the tree
+
+Inorder (LDR) algorithm:
+
+    function inOrder(root) {
+        if (root === null) return;
+
+        // go to left subtree if possible
+        inOrder(root.left);
+
+        // process data
+        console.log(root.data)
+
+        // go to right subtree if possible
+        inOrder(root.right);
+    }
+
+Postorder (LRD) algorithm:
+
+    function postOrder(root) {
+        if (root === null) return;
+
+        postOrder(root.left);
+        postOrder(root.right);
+        console.log(root.data);
+    }
+
+### BINARY TREES ARE NOT THE SAME AS BINARY SEARCH TREES
+
+Someone should really have mentioned this! It's important.
+
+A __binary tree__ is a nonlinear data structure where each node can have UP TO 2 children.
+
+- It is unordered, hence slower in insertion/deletion/searching processes
+- Positioning of nodes does not correspond to the node's values.
+- Duplicate values are allowed
+- Time complexity is usually `O(n)`
+- Used in Full Binary Tree, BST, Perfect Binary Tree
+
+A __binary search tree__ is a node-based binary tree that further has right and l
+
+- Due to being ordered, performing insertion/deletion/searching on a binary search tree is faster than a binary tree.
+- On any given node, the left subtree has elements less than the current node, and the right subtree has elements greater than the current node.
+- Duplicate values are not allowed
+- Time complexity is usually `O(log(n))`
+- Used in Balanced Binary Search Trees like AVL Trees, Red Black Trees etc
+
+## Balanced Binary Search Tree from Sorted Array
+
+Given a sorted array, write a function that creates a Balanced Binary Search Tree using array elements. e.g:
+
+    Input: arr[] = {1, 2, 3}
+    Output: 
+        2
+      /   \
+    1       3
+    Explanation: all elements less than 2 are on the left side of 2. All elements greater than 2 are on the right side.
+
+Another example:
+
+    Input: arr[] = {1, 2, 3, 4}
+    Output:
+          3
+        /   \
+       2     3
+      /
+    1
+
+The idea is to **find the middle element of the array** and make it the root of the tree, then perform the same operation on the left subarray for the root's left child, and the same for the right subarray for the root's right child. Again, keep in mind the array is already sorted, so the midpoint approach works.
+
+### Pseudocode
+
+1. Set the midpoint of the array as `root` (essentially, the "top" of a given tree).
+2. Recursively do the same for left/right half.
+3. Print the preorder (DLR) of the tree.
+
+Implementing the above in JS:
+1. Create class constructor for Node with data, left and right properties.
+2. Create function for sortedArrayToBST:
+    1. Write the base case: if start > end, return null (so the ends of leaf nodes are null)
+    2. Get the midpoint (with `Math.floor((start + end) / 2)`).
+    3. Create a new node with this midpoint.
+    4. For the LEFT tree, use the element to the LEFT of the midpoint as the new end for **recursive** call (do not use `mid`, use `mid - 1` because we already made a node for `mid`)
+    5. For the RIGHT tree, use the element to the RIGHT of the midpoint as the new start (`mid + 1`), also a recursive subcall.
+    6. Finally, return the midpoint node we created `return node`.
+
+    // First, create a class constructor for tree nodes
+    class Node {
+        constructor(d) {
+            this.data = d;
+            this.left = null;
+            this.right = null;
+        }
+    }
+
+    function sortedArrayToBST(array, start, end) {
+        // Base case
+        if (start > end) return null;
+
+        // Get the midpoint, set it to root.
+        let mid = Math.floor((start + end) / 2);
+        let node = new Node(arr[mid]);
+
+        // Recursively construct left subtree and make it left child of root
+        node.left = sortedArrayToBST(arr, start, mid - 1);
+
+        // Same with right
+        node.right = sortedArrayToBST(arr, mid + 1, end);
+
+        return node;
+    }
+
+    // Utility function to print preorder traversal of BST
+
+    function preOrder(node) {
+        // Base case
+        if (node === null) return;
+
+        console.log(node.data);
+
+        preOrder(node.left);
+        preOrder(node.right);
+    }
+
+    let arr = [1, 2, 3, 4, 5, 6, 7];
+    let root = sortedArrayToBST(arr, 0, arr.length - 1);
+    preOrder(root);
+
+Time complexity: `O(N)` where N is the length of the array.
+
+Space complexity: `O(H) ~= O(log(N))`, for recursive stack space, where `H` is the height of the tree.
+
+## (Time complexity of recursion)[https://stackoverflow.com/questions/13467674/determining-complexity-for-recursive-functions-big-o-notation]
+
+The function:
+
+    int recursiveFun1(int n)
+    {
+        if (n <= 0)
+            return 1;
+        else
+            return 1 + recursiveFun1(n-1);
+    }
+
+In Big O notation: this function is being called recursively `n` times before reaching the base case. So it is `O(n)`, in other words linear time complexity.
+
+    int recursiveFun2(int n)
+    {
+        if (n <= 0)
+            return 1;
+        else
+            return 1 + recursiveFun2(n-5);
+    }
+
+This one is being called with `n-5` for each recursion, so we deduct `5` from `n`. But actually `n - 5` is also `O(n)` (actually called order of n/5 times). For the purposes of big O, `O(n/5)` = `O(n)`.
+
+The reason why `n - 5` is written as `n / 5` is that when you decrement a given number by 5, you will only be able to do so `n / 5` times. e.g. 
+
+    n = 100, 100 - 5 = 95, 95 - 5 = 90, ...
+    You can do this operation 20 times until n = 0 (triggering the base case)
+
+> If there isn't any exponential stuff happening, any standard offset of `n` is considered `O(n)`. This is because when scaled up (as a graph), `O(n)` is not that different from `O(n + 5)`, `O(5n)`, or `O(n/5)`.
+
+    int recursiveFun3(int n)
+    {
+        if (n <= 0)
+            return 1;
+        else
+            return 1 + recursiveFun3(n/5);
+    }
+
+Now this one is `log₅(n)` (log n base 5), BECAUSE, each time, we are dividing by 5 before calling the function. So it is `O(log₅(n))`, often called *logarithmic*. It's more common for Big O notation and complexity analyses to use base 2. I assume this is because most algorithms ask you to divide by 2.
+
+    void recursiveFun4(int n, int m, int o)
+    {
+        if (n <= 0)
+        {
+            printf("%d, %d\n",m, o);
+        }
+        else
+        {
+            recursiveFun4(n-1, m+1, o);
+            recursiveFun4(n-1, m, o+1);
+        }
+    }
+
+Here, we have `O(2ⁿ)`, or *exponential*, because each function calls itself **twice** unless it has been recursed `n` times.
+
+This looks wild to me but it kind of makes sense. The base condition is based off `n`, so we are still counting using `n`.
+
+    int recursiveFun5(int n)
+    {
+        for (i = 0; i < n; i += 2) {
+            // do something
+        }
+
+        if (n <= 0)
+            return 1;
+        else
+            return 1 + recursiveFun5(n-5);
+    }
+
+Here we have a for loop with `i += 2`, then a base case of n - 5. The for loop will run `n/2` times, since we are increasing by 2 each time. Since the for loop is called recursively, the time complexity will be in `(n/5) * (n/2)` = `n^2/10`.
+
+Due to worst-case scenario considerations (big O represents the upper bound), we're only interested in the largest term. So, `O(n²)`.
+
+## Batch Processing
+
+Aka bulk processing. Real world example: banking. A bank can have a LOT of transaction requests happening at once, but the money is not necessarily processed immediately when the request is made. e.g
+
+Customer A transfers money to Customer B at 12pm. This is stored into the bank's database (as a "pending" transaction) and is run at 4pm. Any other requests made between 12-4pm will also have been stored, and they will all be performed in one shot. This is a real-world example of batch/bulk processing.
+
+Another example: imagine e-commerce or retail. A seller has thousands of items for sale on an e-commerce portal. Then this seller gets thousands of new items in stock. Each item has quantities: 5, 10, 100 etc. Updating these items manually is not feasible!
+
+So, the portal provides a .csv file  that the seller can fill in.
+
+> A CSV file (comma-separated values) is a plaintext file containing a list of data. Commonly used by databases and contact managers. They use a comma (or another symbol like `;`) to separate/delimit data. It looks something like this:
+
+    Name,email,phone number,address
+    Example,example@example.com,555-555-5555,Example Address
+    Example2,example2@example.com,555-555-5551,Example2 Address
+
+When the seller uploads the file, it will be stored on the portal's server. At night, it can run a batch job. Any CSV files from any sellers across the world will be read and the data will be stored in the database.
+
+### Batch Processing vs Stream Processing/Event Driven
+
+When an event occurs, the data is processed right away e.g. sending a tweet, the tweet gets processed and published right after you send tweet. That's stream processing.
+
+The telltale sign of batch processing is that the processing of the data has a fixed schedule or requires a manual start.
 
