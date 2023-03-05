@@ -132,3 +132,49 @@ The `.json()` method of the Response interface returns a promise which resolves 
 This means the result is NOT JSON, it is the result of taking JSON as an input and parsing it to produce a JS object.
 
 Also, the fact that this method returns a promise means that it should be performed in its own `.then()` step. The next `.then()` of the chain is where we will work with the result.
+
+## Cache API
+You can store stuff in the browser cache using Cache API.
+
+    const cache = await caches.open('cache');
+
+This line checks to see if the cache already exists, and if not, creates it. If it does, it accesses it.
+
+    const existingResult = await cache.match(url);
+
+Using the `url` argument, which we also used for the fetch request, this checks to see if there's a matching key in the cache. If there is, it returns the data as a Promise. If not, it returns `undefined`.
+
+Please note that *you can only store the raw `Response` object in the cache*! (At least, if you're using `cache.put`, that seems to be the case). So it needs to be the first step that you do in your Promise chain.
+
+    return fetch(url)
+        .then(response => {
+            let resCopy = response.clone();
+            cache.put(url, response);
+            return resCopy;
+        })
+    
+Note here that you cannot return the response after storing it in the cache. You need to do `response.clone()` before caching the response, then return the clone. Not sure why (other than "can't be read twice").
+
+    const makeHTTPRequest = async (url) => {
+        const cache = await caches.open('cache');
+        const existingResult = await cache.match(url);
+
+        if (existingResult === undefined) {
+            console.log('Fetching...')
+            return fetch(url)
+                .then(response => {
+                    let resCopy = response.clone();
+                    cache.put(url, response);
+                    return resCopy;
+                })
+                .then(response => {
+                    return response.json()
+                })
+                .catch(error => console.error(error))
+        } else {
+            console.log('Cached data found...');
+            return existingResult.json();
+        }
+    }
+
+Using this sort of structure, you can make sure that every fetch request you perform goes through the cache first, so as not to get you banned from using an API.

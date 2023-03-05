@@ -3674,6 +3674,118 @@ If you have an iterable of promises, and you want to know the results of all of 
 
 It can be used when you have multiple async tasks that are not dependent on one another to complete successfully.
 
+### Why I can't do Promises properly
+
+If you have a function
+
+    function getData(url){
+        return fetch(url)
+                .then(response => response.json())
+                .catch(error => console.error(error))
+    }        
+
+Note that we are **RETURNING** a fetch request. This means you're returning a Promise object, NOT the data itself. The function `getData()` will return a promise, so you'll need to `.then()` to access the data. [Article here](https://stackoverflow.com/questions/44644138/return-the-result-value-with-fetch-call-function-from-another-page-react-native).
+
+However, this doesn't work when I introduce caching into the mix (i.e. cloning response, caching response, returning the response clone, then in the next step doing `.json()`). Even though the data is fetched, `response.clone()` returns `undefined`.
+
+It seems better to just do `.then(result => processData(result))` as part of the promise chain. There's no confusion there at all.
+
+#### `.then()`
+
+I may have solved this dumb problem that I've been struggling with for ages.
+
+BASICALLY, I can't do 
+
+    let fetchReq = makeHTTPRequest(url)
+    fetchReq.then(res => res)
+    console.log(fetchReq)
+
+This will return a Promise that never resolves (or undefined).
+
+I wanted to make a reusable function that checks the cache and then returns `.json()` Promises so I can use the data in other places. Because otherwise you'll be locking the function to only one callback, which is dumb.
+
+The solution is to do the Promise chain up until you return a JSON Promise. Then, whenever you want in your code, you can feed the data into the next callback using `.then()`, like `makeHTTPRequest(url).then(res => {processData(res)});`.
+
+You CANNOT assign this to a variable and then do anything with that variable, unless you have an `async` function, as your variable will be `undefined` at the time of calling (because it's synchronous).
+
+    form.addEventListener('submit', (event) => {
+        event.preventDefault();
+
+        makeHTTPRequest(url).then(res => {processData(res)});
+    })
+
+    function processData(data) {
+        console.log(data);
+    }
+
+    const makeHTTPRequest = async (url) => {
+        // First, check the cache
+        const cache = await caches.open('cache');
+        const existingResult = await cache.match(url);
+
+        if (existingResult === undefined) {
+            console.log('FETCHING...')
+
+            return fetch(url)
+                .then(response => {
+                    let resCopy = response.clone();
+                    cache.put(url, response);
+                    return resCopy;
+                })
+                .then(response => {
+                    return response.json()
+                })
+                .catch(error => {
+                    console.error(error);
+                    displayResults(error);
+                })
+        } else {
+            console.log('cached data found');
+            return existingResult.json();
+        }
+    }
+
+**NOTE**: DON'T FORGET TO RETURN THE FETCH REQUEST!
+
+You need to always return the Promise chain, otherwise the data will fly off into nowhere.
+
+### Using `Promise.all()` actually
+
+- Takes an iterable of Promises
+- Returns an iterable of Promises
+- Rejects when first Promise rejects, with that error message
+
+    Promise.all(
+        data.results.map(item => makeHTTPRequest(item.url))
+    )
+        .then(res => {
+            return res.map(item => makeHTTPRequest(item.item.url))
+        })
+        .then(res => {
+            console.log(res) // See output
+            let result = res.map(item => item.sprites)
+            return result
+        })
+    
+    // Output: an array of Promises which will resolve to be undefined
+
+This code DOES NOT work. This because in the first `.then()`, I'm returning an array of Promises, which is not a Promise in itself. So in the next step we can't do anything with the data. It's just an array.
+
+The solution: **wrap all chained arrays of Promises inside Promise.all()**.
+
+    Promise.all(
+        data.results.map(item => makeHTTPRequest(item.url))
+    )
+        .then(res => {
+            return Promise.all(res.map(item => makeHTTPRequest(item.item.url)))
+        })
+        .then(res => {
+            let result = res.map(item => item.sprites)
+            return result
+        })
+
+#1 most important thing to remember: always check that you're returning a Promise and following it up with `.then`.
+
 ## Reducers
 
 Array.reduce is commonly used to iterate a list, applying a function to an accumulated value along the way, then returning the singular result. But, it has many uses actually! It's important to understand reduce when working with datasets.
