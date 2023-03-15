@@ -2089,3 +2089,525 @@ When an event occurs, the data is processed right away e.g. sending a tweet, the
 
 The telltale sign of batch processing is that the processing of the data has a fixed schedule or requires a manual start.
 
+## Unit Testing
+
+General thinking for the process of writing an algorithm: the start is defining a problem, then solving one instance of that problem (without writing any code), then making that solution general enough to solve every instance of the problem that is within your scope, and finally writing the code version of that solution to form the algorithm.
+
+Unit testing is working through the problem to find the solution in parallel to writing the algorithm. You're combining these 2 steps. You can write an algorithm that satisfies the conditions of the tests.
+
+## Binary Search Trees
+
+Where you take a group of data items and turn them into a tree full of nodes where each left node is "lower" (in value) than each right node. The tree starts with the **root node** and a node with no children is called a **leaf node**.
+
+## Balanced Binary Search Trees (Balanced BST)
+
+A BST is **balanced** if:
+- Height of left subtree and right subtree of **root** differ by, at most, 1.
+- Left subtree is balanced
+- Right subtree is balanced
+
+Consider:
+
+            3
+          /    \
+         2      4
+        /        
+       1
+
+Is this balanced? Yes, it meets all conditions. Height of left subtree is 2, height of right subtree is 1.
+
+            3
+          /
+         2
+        /        
+       1
+
+However, this tree is NOT balanced. Left subtree height is 2, right is 0.
+
+### Sorted Array to Balanced BST
+
+From [this video](https://youtu.be/VCTP81Ij-EM)
+
+From the examples shown:
+
+    [1, 2, 3, 4, 5, 6, 7]
+
+                4
+              /   \
+            2       6
+          /   \   /   \
+        1      3 5      7
+    
+See a pattern?
+- The root node of the whole tree is the **middle element** of the array.
+- The root node of *each subtree* is **also** the midpoint of each half of the array.
+
+Conclusion: the root node is the middle element of the sorted array.
+
+### Algorithm
+
+1. Initialize `start = 0`, `end = array.length - 1`
+2. `mid = (start + end) / 2`
+3. Create a tree node with mid as root (let's call it A)
+4. Recursively do the following:
+5. Calculate mid of left subarray and make it root of left subtree of A.
+6. Calculate mid of right subarray and make it root of the right subtree of A.
+
+I assume that the children of leaf nodes are `null`.
+
+### Practice
+
+Let's take this array (corresponding indices shown underneath):
+
+    [1, 2, 3, 4, 5, 6, 7]
+     0  1  2  3  4  5  6
+
+    start = 0, end = 6
+    mid = (0 + 6) / 2 = 3
+
+    The element at index 3 is 4.
+
+    On either side of element 4, we have:
+
+    left subtree: 1, 2, 3
+    right subtree: 5, 6, 7
+
+    Because this array is sorted, we know elements to the left are smaller than mid. So the left subtree is used to create left subtree. Vice versa for right, where the elements to the right of mid are larger.
+
+    Repeat with left:
+
+    start = 0, end = 2
+    mid = 1, or array element 2
+
+    Therefore, the left child of 2 will be 1 and the right child is 3.
+
+    Going left again:
+
+    start = 0, end = 0
+
+    Because the indices of the start and end are the same, we know we're at a leaf node. So return.
+
+The example code from the video:
+
+    private static TreeNode createBST(int[] array, int start, int end) {
+        if (start > end) return null;
+
+        int mid = (start + end) / 2;
+        TreeNode root = new TreeNode(array[mid]);
+
+        root.setLeft(createBST(array, start, mid-1));
+        root.setRight(createBST(array. mid + 1, end));
+
+        return root;
+    }
+
+A node is only created if 
+
+In JS:
+
+    class Node {
+        constructor (value) {
+            this.value = value;
+            this.left = null;
+            this.right = null;
+        }
+    }
+
+    function createBST(array, start, end) {
+        if (start > end) return null;
+
+        let mid = Math.floor((start + end) / 2);
+        let root = new Node(array[mid]);
+
+        root.left = createBST(array, start, mid - 1);
+        root.right = createBST(array, mid + 1, end);
+
+        return root;
+    }
+
+I haven't tested this yet, just translated the code into usable JS.
+
+Note: for the line `if (start > end) return null` I initially thought it would be `if (start >= end) return null`. HOWEVER, that's incorrect. Because, at some point we will get down to e.g.
+
+    root.left = createBST(array, 0, 0)
+
+Which will create `root` for `array[0]`. If we did `(start >= end)`, we would actually skip the very end of each recursion stack where we're basically only working with 1 element at this point. We still need to capture these elements, because we only create 1 node with each recursive call. So you need to do a call for every element in the array.
+
+So anyway, the base condition for returning `null` is `if (start > end)`.
+
+Following backwards from when we get to the base case...
+
+`root.setLeft(createBST(array, 0, -1))` and `root.setRight(1, 0)` will each return `null` for our `root` node, `array[0]`, or the element 1.
+
+        1
+      /   \
+    null  null
+
+Then, this node 1 will be set as node 2's left.
+
+### Algorithm Time/Space Complexity
+
+`O(n)` "order of n"
+
+Space complexity: also `n`? The maximal depth of the recursion is `n`, I think, because you need to make 1 call for each node in the tree.
+
+## Merge Sort Algorithm
+
+1. Have a list, unsorted
+2. Break list into halves
+3. For each half, keep halving until you only have one element in the list (a sorted list).
+4. Once you do, return this element (MAXIMUM RECURSIVE DEPTH REACHED, now we are working back down the call stack).
+5. In the previous subcall, you will receive 2 sorted lists from the 2 recursive calls you did. Compare listA[0] and listB[0]. Add the smaller one into a new list.
+6. One list is now empty. So, add all the elements from the remaining list into the new list.
+7. Return the new list.
+
+`.slice(start, end)` returns a shallow copy of an array from start to end index, where the end index is *NOT included*.
+
+I thought this would create very lopsided halves when combined with `Math.floor`, but that was because I forgot that an array index starts at 0.
+
+PS I don't think you can avoid creating new sub-arrays for each recursive call.
+
+    function mergeSort(list) {
+        // Base case: list is 1 element long.
+        if (list.length === 1) return list;
+
+        // We need to have 2 sorted lists for this to work.
+        let midpoint = Math.floor((0 + list.length - 1) / 2);
+        
+        let A = mergeSort(list.slice(0, mid));
+        let B = mergeSort(list.slice(mid, list.length));
+
+        let sorted = [];
+
+        // Create working indices
+        let i = 0, j = 0, k = 0;
+
+        while (i < A.length && j < B.length) {
+            if (A[i] > B[j]) {
+                sorted[k] = B[j];
+                j++;
+            } else {
+                sorted[k] = A[i];
+                i++;
+            }
+            k++;
+        }
+
+        // After we're done with the loop, add all elements from non-empty list
+        for (; i < A.length; i++) {
+            sorted[k] = A[i];
+            k++;
+        }
+        for (; j < B.length; j++) {
+            sorted[k] = B[j];
+            k++;
+        }
+
+        return sorted;
+    }
+
+testing:
+
+array = [2, 1, 0]
+
+    midpoint = 2 / 2 = 1
+
+    A = [2] // sorted
+    B = [1, 0]
+    
+        // sort B
+        mid = (0 + 1) / 2 = 0.5 = 0
+        A = list.slice(0, 0) //  = empty array???? uh oh
+        B = list.slice(0, 2)
+
+This will not work. The way I get the midpoint won't work for any arrays that have 2 elements.
+
+I Googled this because I was like huh?? There's an example that does work, and does
+
+    let mid = Math.floor(arr.length / 2)
+
+Instead of `(arr.length - 1) / 2` which is what I did. How is this different?
+
+If we have an array of length 2,
+
+    let mid = Math.floor(arr.length / 2) = 1
+
+vs mine,
+
+    let mid = Math.floor((arr.length - 1) / 2) = 0.5 = 0
+
+To me this seems like Math.ceil((arr.length - 1) / 2)?
+
+    let mid = Math.ceil((arr.length - 1) / 2)
+            = Math.ceil(1 / 2) = 0.5 = 1
+    
+    // length = 7
+
+    let mid = Math.ceil((arr.length - 1) / 2)
+        = Math.ceil(6 / 2) = 3
+
+    let mid = Math.floor(arr.length / 2)
+            = Math.floor(7 / 2) = 3.5 = 3
+
+So uh yeah I guess.
+
+So if I change my code to 
+
+    function mergeSort(list) {
+        // Base case: list is 1 element long/empty
+        if (list.length <= 1) return list;
+
+        // We need to have 2 sorted lists for this to work.
+        let midpoint = Math.floor((0 + list.length) / 2);
+        
+        let A = mergeSort(list.slice(0, mid));
+        let B = mergeSort(list.slice(mid));
+
+        let sorted = [];
+
+        // Create working indices
+        let i = 0, j = 0, k = 0;
+
+        while (i < A.length && j < B.length) {
+            if (A[i] > B[j]) {
+                sorted[k] = B[j];
+                j++;
+            } else {
+                sorted[k] = A[i];
+                i++;
+            }
+            k++;
+        }
+
+        // After we're done with the loop, add all elements from non-empty list
+        for (; i < A.length; i++) {
+            sorted[k] = A[i];
+            k++;
+        }
+        for (; j < B.length; j++) {
+            sorted[k] = B[j];
+            k++;
+        }
+
+        return sorted;
+    }
+
+PS I made the base case `list.length <= 1` just in case some fool plugs in an empty array.
+
+### Space/Time complexity of merge/sort
+
+Important thing to know: merge sort, unlike some other sort algorithms, does not care if an array is mostly sorted. It will always perform the same number of comparisons on an array of `n` length.
+
+So, the best case (array is already sorted), average case (random order), and worst case (array is reversed) scenarios are totally irrelevant.
+
+Time: `O(n log(n))`. 
+
+If `n = 8`, we will be halving the sub-arrays a total of 3 times to get to arrays of 1 element each.
+
+    8 => 4 4 => 2 2 2 2 => 1 1 1 1 1 1 1 1 
+
+In other words, every time we double the size of the input (`n`), the total number of divisions we do increases by 1. This is **logarithmic time**.
+
+From [here], regarding space complexity of recursive functions (https://stackoverflow.com/questions/43298938/space-complexity-of-recursive-function):
+
+    Here's how I think about it:
+
+    The temptation is to say that the space complexity will also be O(2^N), because after all, memory has to be allocated for each of the O(2^N) recursive calls, right? (not right)
+
+    In actuality the values are added together/collapsed at each call and thus the space required will just be the result of each call starting at the base case on up, forming the array [f(1), f(2), f(3) ... f(n)], in other words just O(n) memory
+
+## Balanced Binary Search Trees Algorithms
+
+A binary search tree has these properties:
+- Left subtree of a node contains only nodes with keys lesser than the node's key
+- Right subtree of a node contains only nodes with keys greater than the node's key
+- Left and right subtree must each also be a binary search tree. No duplicate nodes allowed.
+
+> Please note: other than all values on the left being smaller and all values on the right being bigger, there is no other order to the positioning of the nodes in the tree. e.g. You can have the right child of a root node of 3 be 6, then have the left child of that node be 4. 4 is not going to be connected to 3 at all, it is just larger than 3.
+
+These properties of the BST provide an ordering among keys such that operations like search, minimum and maximum can be done fast. If there is no order, than you'd have to compare every key to search for a value.
+
+A *balanced* BST just means that on top of these, the heights of the left and right subtree have a difference of 0 or 1 level(s).
+
+- We NEVER want to restructure binary search trees. There are other tree data structures that allow restructuring, but binary search trees do not.
+- In some instances of a BST, a node will have both a key AND a value (the key is for accessing the node, to perform actions such as updating the value). I haven't seen this in JavaScript though.
+
+### Insert
+
+You want to avoid rearranging nodes. Which means you keep going until you reach `null` (the node has no child there), THEN insert the value in that spot.
+
+If you tried to insert a value into the tree that already exists, then you wouldn't add anything. (that's the rule, no duplicates). Instead, **return the node that already exists**. 
+
+Remember: when inserting a key into your BST, it will ALWAYS become a leaf node in that tree. 
+
+So, compare the root node and the new key. If the new key is greater, do the comparison with the right node. Otherwise, do it with the left node. If it's equal to any node along the way, we don't want to insert anything, just return the existing node. If the current node is `null`, insert the value here.
+
+### Delete
+
+1. Delete a leaf (no kids) - very easy, just remove the pointer to that node.
+2. Node has 1 child - just change the link to the node's child to be the child of the previous node. In other words, point the parent's link to the node to the node's child.
+3. 2 kids uh oh - Find the thing in the tree that is the NEXT biggest value. In other words, check that node's RIGHT subtree for the LEFT-MOST value (go left until you can't go left anymore, aka inorder traversal). Then, move that node to the node you're deleting.
+    - The node you will use to replace the node with 2 children will ONLY EVER have a right subtree. We know this because if there was something to the left of it, then we'd be using that instead (because it's smaller, but bigger than our target value). So we'll need to link up the replacement node's parent and child as part of migrating it.
+    - So, first store the node we found, then link the parent and the child together, then replace the original node with the found node.
+    - We only ever restructure as little as we can.
+
+#### Algorithm
+Find the node you want to delete.
+
+- If the target node has NO children, just remove the parent's reference to it
+- If the target node has ONE child, replace the parent's link to the node with a link to the child
+- If the target node has TWO children:
+    1. Find node with the NEXT biggest key* (in other words, the inorder successor (first result)). This is the leftmost node in the rightmost subtree of the target.
+    2. Call your `delete()` method on this node. Yes, this is recursion, but it will not make an infinite loop because *this node can only ever have ONE child*.
+    3. Replace the target node with this node that we deleted.
+    *. You can also get the next smallest key, by getting the inorder predecessor of the target.
+
+(If the `delete()` function happens to return the deleted node, this may be handy, like `let replacement = this.delete(inorderSuccessor)`).
+
+#### Hang on a second
+So all this time I've been assuming that you delete nodes from binary search trees just like you do with linked lists, i.e. you remove the parent's reference to the node, or link the parent node to the target's child node.
+
+BUT, I couldn't wrap my head around the code example [here](https://www.geeksforgeeks.org/deletion-in-binary-search-tree/), because it didn't do that! It just replaced the target node `root` itself.
+
+So, I'm curious as to whether or not this is a valid way to do things (just doing `root = ` instead of changing the parent just like in a linked list).
+
+#### Sample code
+
+(Based off what I'm testing)
+
+Oh I see, in each case, regardless of whether you're at the target node or not, this code reassigns each node to itself.
+
+    function delete (data, root) {
+        // Base case: empty
+        if (root == null) return root;
+
+        // Otherwise, recur down subtree
+        if (data > root.data) {
+            root.right = delete(data, root.right);
+        } else if (key < root.data) {
+            root.left = delete(data, root.left);
+        }
+
+        // If found, act according to children
+        else {
+            // If one child or no children
+            if (root.left === null) {
+                return root.right;
+            } else if (root.right === null) {
+                return root.left;
+            }
+
+            // case for node with 2 children, get next biggest value in tree
+            // and replace this node with that one
+            // and, call delete on the successor node
+
+            root.data = this.getMinValue(root.right).data;
+
+            // After reassigning this node to the inorder successor
+            // Run the delete on the right subtree to delete the original
+            root.right = deleteRec(root.data, root,right);
+        }
+        return;
+    }
+
+##### Bug from directly replacing node with 2 children 
+
+    let array = [1, 7, 4, 23, 8, 9, 4, 3, 5, 7, 9, 67, 6345, 324, 40, 55, 88, 77, 121, 574];
+
+    let myTree = new Tree(array);
+
+    myTree.deleteVal(67)
+
+    prettyPrint(myTree.root);
+
+After deleting 67 (with left child 55 and right child 77), 65 is replaced by 77 but 55 disappears.
+
+Ran delete function on the root (40), and it got replaced by 55 and then all the children vanished. Interesting!
+
+So the issue is PROBABLY with `root = getMinValue(root.right)`. I suspect it just copes the node over, including child references (which would be null since 55 had no kids).
+
+Interestingly, in the example given, you're just swapping out `Node.key` (or `.data`), NOT actually replacing the node. You ARE replacing the node if the node only has 0 or 1 children though, just not when it has 2 children.
+
+Changing the line to this `root.data = this.getMinValue(root.right).data` fixed it.
+
+##### Trying to perform deletion in-place (without having to reassign the root)
+
+The current example requires a helper function if you want to make it an object method, because it reassigns the root and all subsequent nodes.
+
+    deleteKey(val) {
+        root = this.delete(val);
+    }
+
+Is there a way to write this such that you can just call `tree.delete(data)` without needing to do `this.root = this.delete(data)`? The main issue I was running into previously was that I couldn't elegantly find a way to also check the root node, since I was __trying to access the node via the parent__. But if this code works, then you DON'T need to do that, so it may work!
+
+    function delete (data, root = this.root) {
+        if (root === null) return;
+
+        // Else, recur
+        if (data > root.data) {
+            this.delete(data, root.right);
+        } else if (data < root.data) {
+            this.delete(data, root.left);
+        } else {
+            // 1 child/no child
+            if (root.left === null) {
+                root = root.right;
+            } else if (root.right === null) {
+                root = root.left;
+            } else {
+                // 2 children
+                root.data = this.getMinValue(root.right).data;
+                this.delete(root.data, root.right);
+            }
+        }
+    }
+
+I'm having an issue with this code: it deletes nodes with 2 children, but it doesn't delete the inorder successor. I found the explanation for this [here](https://stackoverflow.com/questions/73271618/binary-search-tree-remove-function-not-changing-the-original-tree). Basically:
+
+- The removal of a node is not a mutation of the removed node, but of *references*.
+- **You can't get a node to delete itself**. JavaScript just doesn't work like that. Recursion works on each individual node, so we can't just do `root = null`. We need to return `null` and have that value be assigned to that node OUTSIDE of that particular instance of function call.
+- `node = node.left || node.right` if `||` is used with non-boolean values, it actually returns the value of one of the specified operands. Interesting! What's happening in this line is if `node.left` is truthy, `node = node.left`, otherwise `node = node.right`. Due to the nature of this line, we need to perform the check for 2 children BEFORE this is executed. If a node has no children, `node.right` will be assigned to it, in other words `null`. So **this line actually doesn't work**. I wonder if you could do `return root.left || root.right` instead.
+
+Anyway, from all this banging of rocks together that I did, the best solution if I don't want to create 2 separate methods:
+
+    class Tree {
+        // ...etc
+
+        delete(data, root = this.root) {
+            const deleteBound = deleteNode.bind(this);
+            this.root = deleteBound(data, root = this.root)
+
+            function deleteNode(data, root = this.root) {
+                if (root === null) return root;
+
+                if (data > root.data) {
+                    root.right = deleteBound(data, root.right);
+                } else if (data < root.data) {
+                    root.left = deleteBound(data, root.left);
+                } else {
+                    if (root.left === null || root.right === null) {
+                        return root.left || root.right;
+                    } else {
+                        // If two children
+                        root.data = this.getMinValue(root.right).data;
+                        root.right = deleteBound(root.data, root.right);
+                    }
+                }
+                return root;
+            }
+        }
+    }
+
+**NOTE**: The final `return` statement would actually be where you put code to catch if `data` did not exist within the tree. Obviously you'd have to `return root` in the `else` statement to stop it from running every time.
+
+Interesting issue that came up! Making a local function inside `delete` would make `this.root = deleteNode(data, root = this.root)` a function invocation, not an object method invocation! So the value of `this` inside `deleteNode` would then be the global object, not the class instance, breaking the code.
+
+Just for fun & to practice binding functions, I tried `this.root = deleteNode.bind(this)`. It's worth noting that `.bind` RETURNS the bound function object, NOT the result of running the function with `this` bound. So you need to assign it to a variable to use it.
+
+Also, if I ran `this.delete(data, root.right)` (or left) inside `deleteNode`, I got an __Error: "Maximum stack height exceeded"__. So keep in mind that you need to run the bound version of the function every time you want to use it recursively.
+
+### Search
+
+Search operations in BST are very similar to the *binary search* algorithm. You compare a given value to the value of the root node, then go right if it's greater and left if it's lesser than the node's value. If it's equal, you're done. 
+
+With the insert and search algorithms, we only ever add a node as a leaf because we can only add a node once we determine that the node already doesn't exist in the tree.

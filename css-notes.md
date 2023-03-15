@@ -1038,3 +1038,33 @@ The 4 footers will make the entire bottom line one continuous row of the footer.
 
         grid-template-rows: auto;
     }
+
+## Making content stretch to fill page
+
+From [this question](https://stackoverflow.com/questions/6654958/make-body-have-100-of-the-browser-height), if I want to have `body` fill the height and width of the viewport so that I can nicely center content:
+
+    html, body {
+        height: 100vh;
+        width: 100vw;
+    }
+
+You need to set this on the `html` element as well, because `body` looks to its parent for guidance on sizing.
+
+## CSS gradients
+
+Basic syntax: `background-image: linear-gradient(<topcolor>, <bottomcolor>);`. This is a top to bottom gradient (red to yellow). There are other configs available by specifying the horizontal and vertical starting positions.
+
+e.g. this is a top left to bottom right red to yellow gradient:
+
+    background-image: linear-gradient(to bottom right, red, yellow)
+
+Multiple color stops (red to yellow to green gradient):
+
+    background-image: linear-gradient(red, yellow, green);
+
+## `box-sixing: border-box;`
+
+https://css-tricks.com/almanac/properties/b/box-sizing/
+
+## [Collapsing margins](https://www.w3.org/TR/CSS2/box.html#collapsing-margins)
+

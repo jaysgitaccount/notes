@@ -3786,6 +3786,13 @@ The solution: **wrap all chained arrays of Promises inside Promise.all()**.
 
 #1 most important thing to remember: always check that you're returning a Promise and following it up with `.then`.
 
+## Array methods
+
+- `.map()` - transforms an array into an array of the samem length with each item transformed
+- `.filter()` - transforms an array into a smaller array based on criteria
+- `.reject()` - the opposite of `.filter()`
+- .`find()` - does the same as `.filter()` but only returns the first item
+
 ## Reducers
 
 Array.reduce is commonly used to iterate a list, applying a function to an accumulated value along the way, then returning the singular result. But, it has many uses actually! It's important to understand reduce when working with datasets.
@@ -3825,12 +3832,236 @@ In the above, we passed in an anonymous reducing function, but we can abstract i
 
 By the way. JS also has `.reduceRight()`, which works right to left; as in, in the above, the first iteration would use `6` as `n`, then `4`, then `2`.
 
-### Reduce is versatile
-
-You can define `map()`, `filter()`, `forEach()` and other things using reduce.
+You can define `map()`, `filter()`, `forEach()` and other things using `.reduce()`.
 
 Map:
 
     const map = (fn, arr) => arr.reduce((acc, item, index, arr) => {
         return acc.concat(fn(item, index, arr));
     }, []);
+
+### [Reduce part 2](https://youtu.be/1DMolJ2FrNY)
+
+Let's look at `Array.reduce()` from a different perspective:
+
+    let newArray = oldArray.reduce(function(
+            thing you want to create,
+            thing you're iterating
+        ) {
+            // execute code on thing you want to create
+            return thing you want to create
+        },
+            initial object
+        )
+
+It basically takes a function and a **starting object**. This can be a number, but it doesn't have to be! That's what makes `Array.reduce()` so powerful.
+
+The function takes 2 arguments: the object you're creating (accumulator), and the thing you're iterating. After each iteration, you want to make sure you return the object you're creating/accumulator.
+
+BUT, you can use it for more than just adding up all the values in an array!
+
+Consider this data:
+
+    mark johansson  waffle iron 80  2
+    mark johansson  blender 200  1
+    mark johansson  knife 10  4
+    Nikita Smith  waffle iron 80  1
+    Nikita Smith  knife 10  2
+    Nikita Smith  pot 20  3
+
+We can turn this data into an object literal using `Array.reduce()`.
+
+    let output = `mark johansson\twaffle iron\t80\t2\nmark johansson\tblender\t200\t1\nmark johansson\tknife\t10\t4\nNikita Smith\twaffle iron\t80\t1\nNikita Smith\tknife\t10\t2\nNikita Smith\tpot\t20\t3\n`
+        .trim() // remove any spaces or lines at the start and end of strings
+        .split('\n') // Get array of lines between line breaks
+        .map(line => line.split('\t')) // Split each array element into an array of words separated by tabs
+        .reduce((customers, line) => {
+            // Create keys for each customer
+            // We end up with only 2 customers because this is overwritten every time
+            // But, ensure that you don't accidentally overwrite any existing duplicates
+            customers[line[0]] = customers[line[0]] || [] ;
+
+            customers[line[0]].push({
+                name: line[1],
+                price: line[2],
+                quantity: line[3]
+            });
+
+            return customers;
+        }, {})
+
+Good functional code is made out of small functions that do 1 thing, which are then chained together, like here.
+
+For this line
+
+    customers[line[0]] = customers[line[0]] || [] 
+
+If you don't do this, and you instead do 
+
+    customers[line[0]] = [] 
+
+What you'll be doing is creating a NEW and empty key each time, regardless of whether or not `customers['mark johansson']` already exists with something in it!
+
+If you write it with the `||` condition, then basically you'll be reassigning the values that already exist to that object property, resulting in no data loss... Unless it doesn't exist yet, **then** you'll create a new empty array to use. *This is especially important if your dataset has duplicate entries in it*.
+
+That line is there because we want to check if that customer name exists or not, and create an object key for that person if they don't exist.
+
+Once we establish the customer we're working on, we then `.push()` (because it's an array of objects) each line's data to that customer.
+
+Just like that, super easy data processing from some plain text! (that I had to reformat by hand to simulate it actually being data from a server...)
+
+Thus, you can process data with duplicate entries using `Array.reduce()`, and transform it into a workable Object.
+
+## console.log trick
+
+If you have an object you want to display nicely in the console (tested on terminal) (this may not work for Maps):
+
+    console.log('output', JSON.stringify(output, null, 2))
+
+The `2` is the indentation spacing.
+
+## Maps
+
+Maps are mostly similar to Objects. But not quite!!
+
+- Do NOT use `Map[key]` to set/get Map properties. You won't be able to do anything with the data. Use `Map.get(key)` and `Map.set(key, value)`
+- You can simply use `Map.size` to get the number of properties in a Map, unlike Objects with `Object.keys().length`
+- Maps don't have a prototype; they aren't vulnerable to object injection hacks (which, if you want an object, can also be fixed with `Object.create(null)`)
+- Keys that are primitive values are unique, e.g. you can only have 1 key that is the value `1`. Different types of the same value ARE allowed as duplicates, so keep that in mind.
+
+I don't think anonymous functions are a good idea for Map keys. They don't return anything.
+
+### Working with Maps
+- `let myMap = new Map()` - create Map
+- `Map.get(key)` - returns the corresponding value if `key` exists in the map, returns `undefined` if not
+- `Map.set(key, value)` - set (unique) key/value pair, returns the Map object.
+- `Map.size` - return map length
+- `Map.has(key)` - returns `true` if `key` exists within the map, `false` if not
+- `Map.delete(key)` - returns `true` and deletes the key if it exists. Returns `false` if it doesn't exist.
+- `Map.clear()` - removes all key/value pairs from map (returns `undefined`)
+
+Passing multiple key/value pairs to a new Map can be done using an array of arrays:
+
+    let map = new Map(
+        [
+            ['Bobby', 13],
+            ['Ziggy', 13]
+        ]
+    )
+
+    let colors = new Map(
+        [
+            ["tomato", "#ff6347"],
+            ["royalblue","#4169e1"],
+            ["darkgreen","#006400"] 
+        ]
+    )
+
+Converting a Map to an array:
+
+- use a spread operator
+
+    let array = [...map]
+
+This will return an array of arrays with the key/value pairs.
+
+    [
+        [key, value],
+        [1, 'hello'],
+        [35, 'myValue]
+    ]
+
+- use the Array.from method
+
+> `Array.from(array, function)` performs an operation on each array element and returns a new array with each of the values transformed. But here, it will just return the array of key:pair values.
+
+    let array = Array.from(map)
+
+## [Performance of DOM querying methods](https://dev.to/wlytle/performance-tradeoffs-of-queryselector-and-queryselectorall-1074)
+
+The difference between DOM accessing methods is minimal, e.g `document.querySelector()` and `document.getElementById()`.
+
+- `document.querySelector()` allows for complex/chained selectors
+- `document.getElementById()` is actually the fastest one because browsers create a table with unique ids for each element with an `id` attribute, so it's simply a table lookup.
+
+There's only a significant performance difference in large loops (basically, running the same method over and over a LOT, like 5000 times). `document.getElementsByClassName()` (or TagName) will return a HTMLCollection, whereas `document.querySelectorAll()` returns a NodeList.
+
+NodeLists are made by storing each element, in order, in the list (creating the list, tehn filling it up with a loop). HTMLCollections are made by simply registering the collection in a cache. This is much lighter upfront, BUT, with `getElementsByTagName` and `getElementsByTagName`, you have to query the DOM for changes every time an element is accessed.
+
+That said, that process still isn't that slow in the grand scheme of things.
+
+Comment from the article:
+
+    When there is a parent element containing all the queried elements then
+
+        const parentElement = document.querySelector('#parentElementId');
+        const childElements = parentElement.querySelectorAll('.selector');
+
+    is about ten times faster than to use
+
+        const childElements = document.querySelectorAll('.selector');
+
+So you can store a parent in a `const` variable, then use that to access any children you need. It's probably more performant.
+
+## Working with DOM NodeList and HTMLCollection
+
+NodeList - from `node.childNodes`, returns ALL nodes including text etc. you can only use forEach
+
+HTMLCollection - from `node.children`, returns elements ONLY. You can't use `forEach` with this, or basically any array method for that matter.
+
+Both are arraylikes, NOT arrays, so to iterate from them, make a shallow copy array from the children using `Array.from(list)`.
+
+## Optional chaining `?.`
+
+Use `?.` so that JS checks if the reference is not `null` or `undefined` before running the rest of the code. Keep in mind that the whole operator is `?.` and is NOT the same thing as putting an `?` right before accessing an object property with `.` This is because you can use it to check if a function exists before calling it:
+
+    let result = myObject.myMethod?.();
+
+From [this question](https://stackoverflow.com/questions/28975896/is-there-a-way-to-check-for-both-null-and-undefined), this is a new feature, **optional chaining**, that uses **nullish coalescing** aka the `??` operator.
+
+The optional chaining operator accesses an obect's property or calls a function. If the object accessed/function called is `undefined` or `null`, then the expression short-circuits and **evaluates to `undefined`, instead of throwing an error**.
+
+e.g. 
+
+    if (data > root.right?.data || data < root.left?.data)
+
+Consider the old way of checking this:
+
+    const nestedProp = obj.first && obj.first.second;
+
+The value of `obj.first` is confirmed to be non-null before accessing `obj.first.second` (to avoid an error if `obj.first` was `null`, then we accessed `obj.first.second`).
+
+However, it can get verbose if the chain is long, and it's not safe: if `obj.first` is a falsy value that is NOT `null` or `undefined`, e.g. `0` or an empty string, it would still short-circuit and make `nestedProp` become `0`, which may be an unintended side effect.
+
+With the `?.` operator, you don't need to explicitly test/short-circuit based on the state of `obj.first` before trying to access `obj.first.second`.
+
+    const nestedProp = obj.first?.second;
+
+JS knows to implicitly check if `obj.first` isn't `null` or `undefined` before accessing `.second`. If `obj.first` is `null` or `undefined`, then the expression immediately short-circuits and returns `undefined`.
+
+This is equivalent to:
+
+    const temp = obj.first;
+
+    const nestedProp =
+        temp === null || temp === undefined 
+            ? undefined
+            : temp.second;
+
+NOTE: `?.` can't be used on a non-declared root object, but can be used with a root object with value `undefined`.
+
+**NOTE**: be aware of creating "silent errors" with this operator.
+
+### Optional chaining with function calls
+You can use `?.` to attempt to call a method which may not exist, e.g. using an API which may not be available either due to age of the implementation or a feature that is unavailable on the user's device.
+
+    const result = someInterface.customMethod?.();
+
+However, a property exists with that name that is NOT a function, `?.` will still raise a `TypeError` exception: "someInterface.customMethod is not a function".
+
+Also, if `someInterface` itself is `null` or `undefined`, a TypeError exception will still be raised ("someInterface is null"), because you didn't check that object, only the property. If you expect `someInterface` to also be `null` or `undefined`, you'll have to do
+
+    const result = someInterface?.myMethod?.();
+
+Further reading: [MDN](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Optional_chaining).
+

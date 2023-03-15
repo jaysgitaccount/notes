@@ -558,3 +558,24 @@ Instead of using an `<a href=""></a>` anchor, use `#id`. I'm not sure how this w
 
     <!-- Heading to link to -->
     <h2 id="Section_further_down">Section further down</h2>
+
+## Template tags
+
+Anything in these tags will be hidden when the page loads. Use JS to display it.
+
+    <template>
+    </template>
+
+Important note: please remember to clone the template's CONTENT before instantiating it! (cloning the template itself will not work, you need `template.content`).
+
+Also, *you need to make a new clone each time you want to use the template*. Otherwise you'll just overwrite all existing elements that use that template.
+
+    function showContent() {
+        let temp = document.querySelector('template');
+
+        let clone = temp.content.cloneNode(true);
+
+        document.body.appendChild(clone);
+    }
+
+> `cloneNode(isDeep)` if `true` will deep clone the node (clone all subtrees). `false` will only clone the node itself. Any subtrees, including any text the node contains, is not cloned. P.S. `isDeep` won't affect void elementrs, e.g. img or input.

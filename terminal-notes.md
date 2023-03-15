@@ -50,3 +50,64 @@ Rebase has powerful history rewriting features.
 - requires a lot of care; can potentially be catastrophic for your collaboration workflow
 - also (less importantly) loses the context provided by a merge commit, you can't see when upstream changes were incorporated into the feature
 
+## Output to the terminal with Node
+
+Use `node --version` to see if you have Node in your directory and what ver.
+
+To run any console.logs, use `node [filenamehere]` e.g. `node script.js`
+
+To make a [custom console instance](https://stackoverflow.com/questions/63780704/how-do-i-use-console-table-but-to-stderr): 
+
+    const { Console } = require("console");
+    const myConsole = new Console(process.stderr);
+
+Perhaps this is for working with errors in more detail.
+
+### Monitoring a file for changes (watch)
+
+From [this article](https://stackoverflow.com/questions/9724139/is-there-a-way-change-a-node-js-while-its-running)
+
+- returns a Watcher object used for tracking any changes in the file.
+
+Syntax:
+
+    fs.watch( filename[, options][, listener] )
+    fs.watchFile(filename[, options], listener)
+
+    let fs = require('fs');
+    let file = 'file.js';
+
+    let script;
+    function loadScript() {
+    if (script) {
+        if (typeof script.teardown === 'function') {
+        script.teardown();
+        }
+        delete require.cache[file];
+    }
+
+    script = require(file);
+    }
+
+    fs.watch(file, function(event, filename) {
+    if (event !== 'change') return;
+    loadScript();
+    });
+
+    loadScript();
+
+## http-server
+
+`http-server` - start the server
+
+`http-server --cors` - start the server with CORS enabled (to allow fetching)
+
+`watch-http-server` - additional npm package that allows http-server to watch for changes.
+
+`watch-http-server -c-1`
+
+## NPM
+
+`npm uninstall [package-name]`
+
+`npm list` show all packages installed in current directory
