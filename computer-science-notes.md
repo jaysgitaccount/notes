@@ -2442,6 +2442,30 @@ Remember: when inserting a key into your BST, it will ALWAYS become a leaf node 
 
 So, compare the root node and the new key. If the new key is greater, do the comparison with the right node. Otherwise, do it with the left node. If it's equal to any node along the way, we don't want to insert anything, just return the existing node. If the current node is `null`, insert the value here.
 
+Again, note that **we will need to reassign nodes as we go along in order to affect changes**. I already wrote an insert method by checking the value of the current node, then checking the value of the children, then changing that, but I don't think that's the most elegant way to do it (because you're checking the same node twice).
+
+#### Algorithm
+Here's a class method I already wrote. Note that this uses binding of a function invocation so as to avoid making the recursive method public.
+
+    insert(data) {
+        const insertBound = insertNode.bind(this);
+        this.root = insertBound(data);
+
+        function insertNode(data, root = this.root) {
+            if (root === null) return root = new Node(data);
+            if (data === root.data) return root;
+
+            if (data > root.data) {
+                root.right = insertBound(data, root.right);
+            } else if (data < root.data) {
+                root.left = insertBound(data, root.left);
+            }
+
+            // Return unchanged node
+            return root;
+        }
+    }
+
 ### Delete
 
 1. Delete a leaf (no kids) - very easy, just remove the pointer to that node.
@@ -2573,9 +2597,9 @@ Anyway, from all this banging of rocks together that I did, the best solution if
     class Tree {
         // ...etc
 
-        delete(data, root = this.root) {
+        delete(data) {
             const deleteBound = deleteNode.bind(this);
-            this.root = deleteBound(data, root = this.root)
+            this.root = deleteBound(data, this.root);
 
             function deleteNode(data, root = this.root) {
                 if (root === null) return root;
@@ -2611,3 +2635,196 @@ Also, if I ran `this.delete(data, root.right)` (or left) inside `deleteNode`, I 
 Search operations in BST are very similar to the *binary search* algorithm. You compare a given value to the value of the root node, then go right if it's greater and left if it's lesser than the node's value. If it's equal, you're done. 
 
 With the insert and search algorithms, we only ever add a node as a leaf because we can only add a node once we determine that the node already doesn't exist in the tree.
+
+#### Algorithm
+
+Here's a class method I wrote for searching a BST. I used a while loop, incorrectly??? I was supposed to avoid recursion by reassigning root at the end of each loop LOL
+
+The `while` loop will search for `data` along the expected path. If it hits the end of the path `root = null`, it will run the code at the end and return `null`.
+
+A `while` loop is more memory efficient than recursion (only 1 function call), and it would perform the same number of actions as a recursive function.
+
+    find(data, root = this.root) {
+        while (root != null) {
+            if (data === root.data) return root;
+            if (data > root.data) {
+                root = root.right;
+            } else {
+                root = root.left;
+            }
+        }
+
+        console.log(`${data} not found in tree.`)
+        return null;
+    }
+
+### Height of Binary Search Tree
+
+The **height** of a BST is the MAXIMUM depth of any leaf node from the root node. Aka, the longest path from the root node to any leaf node.
+
+Like with array indices, the "index" of a level starts at 0, but the height is counted from 1.
+
+#### Algorithm
+
+Recursively:
+1. Base case: if root is null, return 0;
+2. Otherwise, recursively get the height of left and right subtree
+3. Get the HIGHER of the 2 values, and add 1 to that value.
+4. Return this.
+
+What this means: instead of needing to keep a counter externally or deal with an array of results, __just accumulate +1 for each level you pass through__. Also, at each node, you __discard the lowest value along the way__ so you don't have to do any extra processing.
+
+    function getBSTHeight(root) {
+        if (root === null) return 0;
+        
+        let rightHeight = getSubtreeHeight(root.right);
+        let leftHeight = getSubtreeHeight(root.left);
+
+        return Math.max(leftHeight, rightHeight) + 1;
+    }
+
+### Depth of Binary Search Tree
+
+The **depth** of a given node in a BST is the number of edges to a node FROM the root.
+
+1. If root = null, return
+2. Search for the node (I think I'll use root.data), using binary search technique
+3. Add 1 for each recursive call needed to find node.
+4. If data === root.data, return 0 (so we can start totalling).
+
+    function getNodeDepth(data, root) {
+        if (root === null) {
+            console.log(`${data} not found.`)
+            return root;
+        };
+
+        if (data === root.data) return 0;
+
+        if (data > root.data) {
+            return this.depth(data, root.right) + 1;
+        } else if (data < root.data) {
+            return this.depth(data, root.left) + 1;
+        }
+    }
+
+How this works:
+
+- Because we *only perform 1 chain of recursive calls*, we don't need to worry about managing multiple results
+- Return 0 when we find the target node, so we can begin adding 1 to it as we trace back down the stack.
+- If we go down the expected path and we hit null, then the node doesn't exist in the tree.
+
+#### Returning `null` if not found
+
+From a class method I wrote:
+
+    depth (data, root = this.root) {
+        if (root === null) {
+            console.log(`${data} not found.`)
+            return null;
+        };
+
+        if (data === root.data) return 0;
+
+        if (data > root.data) {
+            let result = this.depth(data, root.right);
+            if (result) return result + 1;
+            
+            return result;
+        } else if (data < root.data) {
+            let result = this.depth(data, root.left);
+            if (result) return result + 1;
+
+            return result;
+        }
+    }
+
+The extra if statements at the end were added because if searching for a non-existent node, the method call was returning a number instead of returning `null`, which could cause silent errors. So I filtered the results such that if 0 was being returned, then we could add 1, but if not, simply return the result (which would be `null`).
+
+#### Iterative depth method
+
+This method DOES require you to keep a count. But it's less memory intensive than the recursive method.
+
+    depthItr(data, root = this.root) {
+        let count = 0;
+        
+        while (root !== null) {
+            if (data > root.data) {
+                root = root.right;
+                count++;
+            } else if (data < root.data) {
+                root = root.left;
+                count++;
+            } else {
+                return count;
+            }
+        }
+
+        // If not found, the while loop exits
+        console.log(`${data} not found.`)
+        return null;
+    }
+
+### Rebalancing a tree
+
+If the height of the root's left subtree is different from the right subtree by more than 1, a BST is **not balanced**. 
+
+To perform rebalancing, get all the current values of the BST in an array via inorder traversal. Then, build the tree from that array of values.
+
+## Memoization
+
+If you're using a value more than once in a calculation, or, to optimise an expensive calculation that has repeated subcalculations, you can use memoization!
+
+The best example of this is the fibonacci sequence, as for every number you're essentially recalculating the previous numbers multiple times. Without any way to reuse calculations, it would get extremely expensive very quickly.
+
+You can use an object and store the given parameter as the key and the calculated value as the value, like `memo[n] = result`.
+
+    function fibonacci(n, memo) {
+        // Memo is an empty object if no memo is passed
+        memo = memo || {};
+
+        if (memo[n]) return memo[n];
+
+        // fib(1) = 1, fib(2) = 1
+        if (n <= 2) return memo[n] = 1;
+
+        // Otherwise, calculate
+        let result = fibonacci(n - 1, memo) + fibonacci(n - 2, memo);
+        
+        // Add the result to memo before returning
+        return memo[n] = result;
+    }
+
+This example creates `memo` as a globally declared object if no `memo` is passed. Honestly not sure about this.
+
+OR, if you can avoid searching an object for a specific key, you can use an array and use the indices as the "keys".
+
+    // Recursive fibonacci using an array cache. 
+    // cache[0] = 0, cache[1] = 1, cache[2] = 1
+    // basically replicating fibonacci indices.
+
+    let cacheArray = [0, 1];
+
+    function fibonacciCache(n) {
+        if (n < 1) return cacheArray[0];
+        if (cacheArray[n]) return cacheArray[n];
+
+        return cacheArray[n] = fibonacciCache(n - 1) + fibonacciCache(n - 2);
+    }
+
+    // The same thing but with an internal array cache, like the memo example
+    function fibCache(n, cache) {
+        cache = cache || [0, 1];
+
+        if (n < 1) return cache[0];
+        if (cache[n]) return cache[n];
+
+        return cache[n] = fibCache(n - 1, cache) + fibCache(n - 2, cache);
+    }
+
+By the way, it's apparently ok to `return` and assign to the cache in the same line.
+
+**NOTE**: if you're doing the global cache declaration method, where the function takes the cache as an argument each time, you **must** remember to pass the cache through each time as well! Otherwise, __the cache will be *reset* each time you start a new subcall__.
+
+NOTE: factorials do NOT gain much from using memoization as each value is only used once. e.g. `7 * 6 * 5 * 4 * 3 * 2 * 1`. Whereas fibonacci is `fib(3) = (fib(2) = fib(1) + fib(0)) + fib(1)`, which gets out of hand very quickly.
+
+I should look into: memoization by passing things into separate functions to memoize, and also the way that memoization works in React just in case.

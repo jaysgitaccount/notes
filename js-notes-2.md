@@ -4065,3 +4065,23 @@ Also, if `someInterface` itself is `null` or `undefined`, a TypeError exception 
 
 Further reading: [MDN](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Optional_chaining).
 
+## 2d Arrays
+
+- The first array stores the NAME of the 2D array, plus the height of the total 2D arrays, i.e. columns.
+- Each array element is then populated by another array. These arrays are the "rows"
+- Each element in a row is where you actually store the data. The initial array is basically the "container".
+- Think of the "coordinates" of accessing a 2D Array like `2DArray[row][column]` instead of `2DArray[y][x]`. It's easier to visualise, because you're choosing WHICH ROW you want to to access first (going down the first array), then which column of that row you want (the array element of that row).
+
+The standard way to create a 2D array:
+
+    const board = [];
+
+    for (let i = 0; i < boardSize; i++) {
+        let secondArr = [];
+        for (let j = 0; j < boardSize; j++) {
+            // Init second dimension of arrays
+            secondArr[j] = null;
+        }
+        // Assign each second dimension array to board[i];
+        board[i] = secondArr;
+    }
