@@ -4085,3 +4085,50 @@ The standard way to create a 2D array:
         // Assign each second dimension array to board[i];
         board[i] = secondArr;
     }
+
+## RequestAnimationFrame
+
+Native function. Takes only 1 arg, the callback.
+
+Your callback routine itself must call `requestAnimationFrame()` again if you want to animate another frame at the repaint.
+
+**NOTE**: You CAN use setInterval to do animations, but apparently `requestAnimationFrame()` is better and more optimised.
+
+- Animations in inactive tabs will stop
+
+    setInterval(() => {
+        // animation here
+    , 1000/60})
+
+    function smoothAnim() {
+        // animation here
+        requestAnimationFrame(smoothAnim)
+    }
+    requestAnimationFrame(smoothAnim);
+
+Just like setTimeout/Interval, `requestAnimationFrame()` **returns an ID you can call to stop it.** You can do this using `cancelAnimationFrame(id)`
+
+    let animId;
+    
+    function smoothAnim() {
+        // animation here
+        requestAnimationFrame(smoothAnim)
+    }
+
+    function startAnim() {
+        animId = requestAnimationFrame(smoothAnim);
+    }
+
+    function endAnim() {
+        cancelAnimationFrame(animId);
+    }
+
+Much like with setTimeout/setInterval, `requestAnimationFrame`, when activated on an event, can be done repeatedly (you can have many IDs but only manage to store one). So be sure to disable this behaviour.
+
+### Automatically passes a timestamp!
+
+The callback method that you pass into requestAnimationFrame() is passed a single argument: a timestamp that indicates the current time, based on the number of ms since time origin (basically when the page was loaded or something like that).
+
+So you can store the start time in an external variable (`if (!start) start = timestamp`), and then calculated total elapsed time using this value. Or, you get get time since last animation frame call by storing `prevUpdate = timestamp` externally.
+
+Time between 2 calls: `currentElapsed = timestamp - prevUpdate`.

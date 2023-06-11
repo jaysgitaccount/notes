@@ -86,7 +86,7 @@ In React, you don't need to `addEventListener`. Instead, provide a listener when
 In classes, it's common to store the event handler as a method on the class:
 
     class Toggle extends React.Component {
-        constrcutor(props) {
+        constructor(props) {
             super(props);
             this.state = {isToggleOn: true};
 

@@ -1066,5 +1066,26 @@ Multiple color stops (red to yellow to green gradient):
 
 https://css-tricks.com/almanac/properties/b/box-sizing/
 
+`box-sixing: border-box;` **includes** an element's border and padding in the total size of the element. If a div has width 600, padding 5px, and border width 5px, then the width of the inner **content box** of the div is actually 590px. The total width of the div, MINUS margins, will be 600px; 
+
+`box-sixing: content-box;` is the default CSS behaviour, where if a child's width is 100% of the parent's width, adding any border or padding to the child will make it extend outside it's parent's width by that many pixels.
+
 ## [Collapsing margins](https://www.w3.org/TR/CSS2/box.html#collapsing-margins)
 
+## Widths, Heights, and box sizing
+
+You can access these properties of a HTMLDomElement in JS, e.g. `element.clientWidth`. These are read-only properties and you can't set them via CSS or JS.
+
+`clientWidth`: the "inner width", including padding ONLY, and excluding borders and scrollbars. For inline elements and elements with no CSS, this is 0. When clientWidth is used on the root element, the viewport's width (excluding any scrollbars) is returned.
+
+`offsetWidth`: outer width, the space occupied by the element, including borders and padding.
+
+`scrollWidth`: the total width of the element, *including* content that is currently offscreen that is only visible if you scroll.
+
+### Moving an element relative to its parent
+
+The `offsetParent` of an element is its closest parent that has a `position` of `absolute` or `relative`. You need to set this manually if you're not using `<body>`!
+
+Then, you can simply call `element.offsetLeft`, etc. to get the element's offset values relative to its parent, instead of to the window.
+
+This should make your JS animation responsive to the parent changing transforms.

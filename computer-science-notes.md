@@ -2828,3 +2828,272 @@ By the way, it's apparently ok to `return` and assign to the cache in the same l
 NOTE: factorials do NOT gain much from using memoization as each value is only used once. e.g. `7 * 6 * 5 * 4 * 3 * 2 * 1`. Whereas fibonacci is `fib(3) = (fib(2) = fib(1) + fib(0)) + fib(1)`, which gets out of hand very quickly.
 
 I should look into: memoization by passing things into separate functions to memoize, and also the way that memoization works in React just in case.
+
+## Two-pointer technique
+
+The two-pointer technique is a **search algorithm** used to solve problems involving collections such as arrays and lists, by comparing elements at each pointer and updating them accordingly.
+
+The merge sort algorithm actually uses two pointers to merge 2 sorted arrays.
+
+There are problems that can be solved by approaching an array with TWO POINTERS.
+
+A classic problem: reverse all characters in a string.
+
+For convenience, let's assume we already have the `swap` function defined.
+
+    function swap(string, i, j) {
+        let temp = string[i];
+        string[i] = string[j];
+        string[j] = temp;
+    }
+
+The idea is to swap the first character with the end, then advance to the next character and swap until we reach the middle point, n/2. 
+
+You could do this via a for loop:
+
+    function reverse(string) {
+        for (let i = 0; i < string.length; i++) {
+            swap(string, i, (string.length - i) - 1);
+        }
+    }
+
+Or, you could do two pointers:
+
+    function reverse(string) {
+        let i = 0;
+        let j = string.length - 1;
+        
+        while (i < j) {
+            swap(string, i, j);
+            i++;
+            j--;
+        }
+    }
+
+The two pointer technique is typically used to search for pairs in a **sorted** array.
+
+Two sum problem: given an array of `n` integers, find a pair `(array[i], array[j])` such that their sum is equal to x.
+
+Example:
+
+    array = [10, 20, 35, 50, 75, 80]
+    x = 70
+    
+    Create i = 0 and j = array.length - 1 (pointers at start and end)
+
+    Now, add i and j, array[i] + array[j] = 10 + 80 = 90.
+
+    x < 90, so we know that we need to decrement j.
+
+    i = 0, j = 4. array[i] + array[j] = 10 + 75 = 85.
+    Again, x < 85, so decrement j.
+
+    i = 0, j = 3. Sum: 60.
+    Now, x > 60. This means we need to increment i.
+
+    i = 1, j = 3. Sum: 70.
+    x === 70.
+
+    Therefore, return i = 1 and j = 3.
+
+This algorithm relies on the array being __sorted__. We start at the sum of the extreme values and conditionally move each pointer.
+
+When the sum of `array[i]` and `array[j]` is LESS than x, we know that we need a bigger value so we move `i`. We don't miss any pairs because the sum is already smaller than x.
+
+Because you'll need to ensure the array is sorted, you'll be using something like merge sort, which has time complexity `O(n log n)`.
+
+### More explanation
+
+A *pointer* is a reference to an object.
+
+Common patterns in the two-pointer approach:
+
+1. Two pointers, 1 starting at the start and 1 and the end.
+2. One pointer moving at a slow pace, and the other at twice the speed.
+
+You can use this pattern for string or array questions, but you can also streamline and make it more efficient by iterating through two parts of an object simultaneously.
+
+Regarding the two sum problem:
+
+If `array[i] < target - array[j]`, you should move `i` forward by one to get closer to where we want to be.
+
+### Two-pointer using fast and slow pointer
+
+You can use this to detect a cycle in a **linked list**. A cycle is when a node points back to a previous node. e.g:
+
+    1 -- > 2 --> 3 --> 4
+                 ^     |
+                 |     |
+                 <- - -
+
+The idea is to move the fast pointer TWICE as fast as the slow pointer, so that the distance between them increases by 1 at each step.
+
+    while (fast && fast.next) {
+        fast = fast.next.next;
+        slow = slow.next;
+    }
+
+If both pointers meet at any point, then we've found a cycle in the linked list. Otherwise, `fast` will have reached the end, so there's no cycle.
+
+    if (fast === slow) return true;
+
+Example code:
+
+    function detectCycle(head) {
+        let fast = head;
+        let slow = head;
+
+        while (fast && fast.next) {
+            if (fast === slow) return true;
+
+            fast = fast.next.next;
+            slow = slow.next;
+        }
+
+        return false;
+    }
+
+## Sliding Windows
+
+A sliding window is a subarray that runs over an underlying data structure. It is typically iterable and ordered, such as an array or string.
+
+Think of it as a subset of the two-pointer method. It normally encompasses searching for a longest, shortest or optimal sequence that satisfies a given condition.
+
+If you have an array that looks like this:
+
+    const arr = ['a', 'l', 'g', 'o', 'd', 'a', 'i', 'l', 'y'];
+
+A sliding window of size `4` will look at the following characters each iteration:
+
+- 'algo'
+- 'goda'
+- 'aily'
+
+### When to use a sliding window
+
+- When you need to calculate a running average
+- Formulate a set of adjacent pairs
+- The problem involves an ordered data structure
+- You need to identify a target value in an array
+- Identify longest, shortest, or most optimal sequence that satisfies a given condition in a collection.
+
+Let's say we had a string and some characters. We want to find the longest substring (a piece of the string with the same order of characters) containing all of those characters.
+
+    String: "ADOBECODEBANC"
+    Characters:"ABC"
+
+    In the above example, it would be "ADOBEC" because it contains A, B, and C.
+
+The brute force way would be to iterate through the string, looking at all substrings of length 3 (because the target characters make a string of 3). Then check to see if they contain the target characters. Then, if you can't find any, look at substrings of size 4, then 5. Very inefficient!!
+
+Using sliding window:
+
+    String: “HGFDSAXZBJKC”
+    Characters: “ABKC”
+
+    Start with left pointer at 'A', and right pointer at 'O' (subarray of size 3.)
+    Then, grow the window until you have a valid substring that contains all the characters you're looking for.
+    Then, shrink the window until you no longer have a valid substring.
+
+Let's try this:
+
+    function minWindows(string, reqChars) {
+        // Have a hash to keep track of how many required characters we've checked off.
+        // Each key will represent a character in reqChars
+        // preset each to 1 and look to lower it when each is fulfilled
+
+        const hash = {}
+        for (let c of reqChars) {
+            hash[c] = 1;
+        }
+
+        // Trackers needed
+
+        let begin = 0;
+        let end = 0;
+        let subStrSize = s.length + 1;
+        let head = 0;
+        // Counter to measure string length against
+        let counter = reqChars.length;
+
+        // continue while there's more elements in string to process
+        while (end < string.length) {
+            
+            if (hash[string[end]]) {
+                // Found a letter we need to fulfill
+
+                // Modify the length counter, we can use this as part of our substring
+                if (hash[string[end]] > 0) {
+                    counter--;
+                }
+
+                // modify the dictionary to say we've gotten this character
+                hash[string[end]] -= 1;
+            }
+        }
+
+        // After we've found our "string endpoint", we begin to move the start until it's invalid. Then make it valid again.
+        while (counter === 0) { // this means we have all our characters atm
+            // Calculate minimum substring size that we care about
+            if (end - begin + 1 < subStrSize) {
+                // Overwrite if current substring is smaller than subStrSize
+                subStrSize = end - begin + 1;
+                head = begin;
+            }
+
+            // Now, shrink it from the beginning to make it the minimum size possible
+            if (hash[string[begin]]) {
+                hash[string[begin]]++;
+
+                // This is a character we need
+                if (hash[string[begin]] > 0) {
+                    counter += 1;
+                }
+            }
+            begin += 1;
+
+        }
+    }
+
+Uhh, I'll come back to this later.
+
+## Balanced Binary Search Trees Revisit
+
+Algorithm for building a Balanced BST from an unsorted array:
+
+    1. Sort the array (I use merge sort algo). You'll need a mergeSort helper function for this.
+    Merge sort:
+
+        If array.length <= 1, return array
+        Split arrays into 2 halves from midpoint (Math.floor((array.length) / 2));
+        Then, recursively merge sort the 2 halves using array.slice:
+            let list1 = mergeSort(array.slice(0, mid));
+            let list2 = mergeSort(array.slice(mid));
+        Then, initialise 3 numbers: i, j and k.
+        If list1[i] < list2[j], add list1[i] to list3[k]. Then i++, k++.
+        Likewise for the other conditions.
+        return array.
+
+    2. Using the sorted array:
+
+        If (start > end) return null;
+        Get the midpoint element of the sorted array, mid = Math.floor(array.length / 2)
+        Make the root node from array[mid].
+        Then:
+            root.left = buildTree(array, start, mid - 1)
+            root.right = buildTree(array, mid + 1, end)
+        Then return root.
+
+        Call this function on the sorted array: getBST(array, 0, array.length - 1)
+
+Summary:
+
+- Merge sort only takes an array, does NOT need start or end params. You get the midpoint using array.length / 2, and you use array.slice (which excludes the last index) to get the subarrays to be recursively sorted. The base case is if the array's length is <= 1.
+- Building a balanced BST from a sorted array:
+    - Base case: if start>end, return null
+    - Get midpoint from (start+end)/2
+    - Then recursively set root.left and root.right by doing (array, start, mid - 1) and (array, mid + 1, end)
+    - Then, return the root.
+
+When working with binary trees, you have to think a little different to linked lists. You have to do `this.root = ` with most functions, and then reassign the root each time, otherwise it won't work.
+
